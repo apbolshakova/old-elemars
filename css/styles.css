@@ -12,7 +12,10 @@ li {
   list-style-type: none;
 }
 
-a, p, span, input {
+a,
+p,
+span,
+input {
   font-family: "Franklin Gothic Medium", sans-serif;
   font-size: 24px;
   color: rgb(69, 6, 141);
@@ -21,7 +24,7 @@ a, p, span, input {
 }
 
 a:hover {
-  color: #FB1886;
+  color: #fb1886;
 }
 
 body {
@@ -43,8 +46,9 @@ canvas {
 ul {
   list-style: none;
   padding: 0;
-  margin: 0
+  margin: 0;
 }
+
 li {
   padding: 10px 0;
 }
@@ -60,11 +64,12 @@ li {
   height: 100vh;
   z-index: 2;
   text-align: left;
-  background: url('../img/map/sky.jpg');
+  background: url("../img/map/sky.jpg");
   position: absolute;
 }
+
 #menu.main {
-  background-image: url('../img/main-menu.jpg');
+  background-image: url("../img/main-menu.jpg");
   background-size: cover;
 }
 
@@ -73,19 +78,28 @@ li {
   height: 12%;
   margin: auto;
   position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
 }
-#percent, #progress-bar {
+
+#percent,
+#progress-bar {
   width: 300px;
 }
 
-#main, #credits {
+#main,
+#credits {
   display: none;
   height: 70%;
   overflow: auto;
   margin: 170px auto;
   position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
   margin-left: 100px;
 }
 
@@ -98,9 +112,9 @@ li {
   width: 200px;
   text-align: center;
   border-radius: 8px;
-  transition-duration: .2s;
+  transition-duration: 0.2s;
   background: #5ba2fc;
-  color: #FFFFFF;
+  color: #ffffff;
   position: relative;
   cursor: pointer;
   padding: 0 36px;
@@ -113,7 +127,6 @@ li {
   background: #ff8e2f;
 }
 
-
 .button_small {
   display: inline;
   width: 150px;
@@ -121,14 +134,15 @@ li {
 }
 
 .button:hover {
-  background-color: #FB1886;
+  background-color: #fb1886;
 }
 
 .button_active {
   border: 4px solid rgb(69, 6, 141);
 }
 
-.back, .back:hover {
+.back,
+.back:hover {
   margin-top: 10px;
 }
 
