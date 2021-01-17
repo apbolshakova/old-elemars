@@ -1,2 +1,6 @@
 /.idea
 /*.log
+/node_modules
+/.prettierrc.js
+/package.json
+/package-lock.json
