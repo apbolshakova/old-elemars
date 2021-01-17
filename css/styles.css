@@ -69,14 +69,14 @@ li {
 }
 
 #progress {
-  width: 200px;
+  width: 300px;
   height: 12%;
   margin: auto;
   position: absolute;
   top: 0; left: 0; bottom: 0; right: 0;
 }
 #percent, #progress-bar {
-  width: 200px;
+  width: 300px;
 }
 
 #main, #credits {
