@@ -2,5 +2,7 @@
   "devDependencies": {
     "@tinkoff/linters": "^1.0.0-rc.12"
   },
-  "dependencies": {}
+  "dependencies": {
+    "socket.io": "^4.0.1"
+  }
 }

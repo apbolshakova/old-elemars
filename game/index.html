@@ -42,7 +42,8 @@
                         </button>
                     </div>
 
-                    <button id="show-instructions-btn" class="button">Играть</button>
+                    <button id="start-solo-game-btn" class="button">Играть один</button>
+                    <button id="start-multi-game-btn" class="button">Создать игру</button>
                     <p class="last_best_score"></p>
                     <button id="download-result" class="button">Скачать рекорд</button>
                 </div>
@@ -97,17 +98,36 @@
                 </button>
             </div>
 
-            <div id="instructions" class="popup-container">
-                <p>
-                    Как играть:<br /><br />
-                    W - прыжок<br /><br />
-                    Средняя и высокая сложность:<br />
-                    A - замедлиться<br />
-                    D - ускориться<br /><br />
-                </p>
-                <button class="button button_centered play">Понятно!</button>
+            <div id="solo-game-preview" class="popup-container">
+                <div class="instructions">
+                    <p>
+                        Как играть:<br /><br />
+                        W - прыжок<br /><br />
+                        Средняя и высокая сложность:<br />
+                        A - замедлиться<br />
+                        D - ускориться<br /><br />
+                    </p>
+                    <button class="button button_centered play">Понятно!</button>
+                </div>
             </div>
+
+            <div id="multi-game-preview" class="popup-container">
+                <div class="instructions">
+                    <p>
+                        Как играть:<br /><br />
+                        W - прыжок<br /><br />
+                        Средняя и высокая сложность:<br />
+                        A - замедлиться<br />
+                        D - ускориться<br /><br />
+                    </p>
+                    <p>Пришли другу эту ссылку: <span class="join-link"></span></p>
+                    <p>Количество людей: <span class="players-num"></span></p>
+                    <button class="button button_centered play">Начать!</button>
+                </div>
+            </div>
+
         </div>
+        <script src="./js/socket.io.js"></script>
         <script type="text/javascript" src="js/main.js"></script>
     </body>
 </html>
