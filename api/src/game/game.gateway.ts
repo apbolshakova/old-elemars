@@ -1,4 +1,8 @@
-import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets'
+import {
+    SubscribeMessage,
+    WebSocketGateway,
+    WebSocketServer,
+} from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
 import { GameService } from './game.service'
 import { Logger } from '@nestjs/common'
@@ -7,17 +11,19 @@ import { Logger } from '@nestjs/common'
 export class GameGateway {
     @WebSocketServer() wss: Server
 
-    private readonly logger = new Logger('Game gateway');
+    private readonly logger = new Logger('Game gateway')
 
     constructor(private gameService: GameService) {
     }
 
+    @SubscribeMessage('connect')
+    handleConnection(client: Socket) {
+        client.emit('connect')
+    }
+
     @SubscribeMessage('create')
-    handleCreation(
-        client: Socket,
-        gameId: string,
-    ) {
-        this.logger.log('create');
+    handleCreation(client: Socket, gameId: string) {
+        this.logger.log('create')
         if (this.gameService.gameId) {
             client.emit('createFail', 'Где-то уже создана игра.')
         }
@@ -30,12 +36,12 @@ export class GameGateway {
     handleJoining(
         client: Socket,
         data: {
-            clientId: string,
-            gameId: string
-            character: string
+            clientId: string;
+            gameId: string;
+            character: string;
         },
     ) {
-        this.logger.log('join');
+        this.logger.log('join')
         if (this.gameService.gameId !== data.gameId) {
             client.emit('joinFail', 'Попытка подключится к несуществующей игре.')
         }
@@ -47,7 +53,20 @@ export class GameGateway {
             }
         }
 
-        this.gameService.players.push({id: data.clientId, character: data.character});
-        client.emit('joinSuccess', this.gameService.players);
+        this.gameService.players.push({
+            id: data.clientId,
+            character: data.character,
+        })
+        client.emit('joinSuccess', this.gameService.players)
     }
+
+  @SubscribeMessage('deleteGame')
+  handleDeletingGame(client: Socket, gameId: string) {
+    this.logger.log('delete')
+    if (this.gameService.gameId) {
+      this.gameService.deleteGame();
+    }
+
+    client.emit('deleteSuccess')
+  }
 }
