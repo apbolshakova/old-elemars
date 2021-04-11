@@ -1,10 +1,13 @@
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
 import { GameService } from './game.service'
+import { Logger } from '@nestjs/common'
 
 @WebSocketGateway()
 export class GameGateway {
     @WebSocketServer() wss: Server
+
+    private readonly logger = new Logger('Game gateway');
 
     constructor(private gameService: GameService) {
     }
@@ -14,6 +17,7 @@ export class GameGateway {
         client: Socket,
         gameId: string,
     ) {
+        this.logger.log('create');
         if (this.gameService.gameId) {
             client.emit('createFail', 'Где-то уже создана игра.')
         }
@@ -31,6 +35,7 @@ export class GameGateway {
             character: string
         },
     ) {
+        this.logger.log('join');
         if (this.gameService.gameId !== data.gameId) {
             client.emit('joinFail', 'Попытка подключится к несуществующей игре.')
         }

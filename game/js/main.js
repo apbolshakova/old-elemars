@@ -1000,7 +1000,7 @@ function mainMenu() {
     document.querySelector('#start-multi-game-btn').onclick = function() {
         document.querySelector('#main').style.display = 'none'
         document.querySelector('#multi-game-preview').style.display = 'block'
-        createMultipleGame()
+        createMultiplayerGame()
     }
 
     document.querySelectorAll('.play').forEach(button => {
@@ -1162,26 +1162,34 @@ function gameOver() {
     else saveResultDiv.classList.add('hidden')
 }
 
-socket.on('createSuccess', () => {
-    document.querySelector('.join-link').innerHTML = 'http://localhost/' + gameId;
-})
+function initSocket() {
+    socket = io('https://elemars.herokuapp.com:3000');
 
-socket.on('createFail', (errMsg) => {
-    alert('Не удалось создать игру! ', errMsg);
-})
+    socket.onAny((event) => {
+        console.log(`got ${event}`);
+    });
 
-socket.on('joinSuccess', (players) => {
-    document.querySelector('.players-num').innerHTML = players.length;
-})
+    socket.on('createSuccess', () => {
+        document.querySelector('.join-link').innerHTML = 'https://elemars.netlify.app/' + gameId;
+    })
 
-socket.on('joinFail', (errMsg) => {
-    alert('Не удалось подключится к игре! ', errMsg);
-})
+    socket.on('createFail', (errMsg) => {
+        alert('Не удалось создать игру! ', errMsg);
+    })
 
-function createMultipleGame() {
+    socket.on('joinSuccess', (players) => {
+        document.querySelector('.players-num').innerHTML = players.length;
+    })
+
+    socket.on('joinFail', (errMsg) => {
+        alert('Не удалось подключится к игре! ', errMsg);
+    })
+}
+
+function createMultiplayerGame() {
     const gameId = 'example'
     const clientId = '1'
-    socket = io('http://localhost')
+    initSocket();
     socket.emit('create', gameId)
     socket.emit('join', {
             clientId: clientId,
