@@ -22,13 +22,17 @@ export class GameGateway {
     }
 
     @SubscribeMessage('create')
-    handleCreation(client: Socket, gameId: string) {
+    handleCreation(client: Socket, data: {
+        gameId: string;
+        level: string;
+    }) {
         this.logger.log('create')
         if (this.gameService.gameId) {
             client.emit('createFail', 'Где-то уже создана игра.')
         }
 
-        this.gameService.gameId = gameId
+        this.gameService.gameId = data.gameId
+        this.gameService.level = data.level
         client.emit('createSuccess')
     }
 
@@ -53,20 +57,52 @@ export class GameGateway {
             }
         }
 
-        this.gameService.players.push({
+        const newPlayer = {
             id: data.clientId,
             character: data.character,
+            x: Math.random() * 100,
+            y: 0,
+        };
+
+        this.gameService.players.push(newPlayer);
+
+        this.wss.emit('joinSuccess', { players: this.gameService.players, level: this.gameService.level });
+        this.wss.emit('update', {
+            id: data.clientId,
+            x: newPlayer.x,
+            y: newPlayer.y,
         })
-        client.emit('joinSuccess', this.gameService.players)
     }
 
-  @SubscribeMessage('deleteGame')
-  handleDeletingGame(client: Socket, gameId: string) {
-    this.logger.log('delete')
-    if (this.gameService.gameId) {
-      this.gameService.deleteGame();
+    @SubscribeMessage('deleteGame')
+    handleDeletingGame(client: Socket, gameId: string) {
+        this.logger.log('delete')
+        if (this.gameService.gameId) {
+            this.gameService.deleteGame()
+        }
+
+        client.emit('deleteSuccess')
     }
 
-    client.emit('deleteSuccess')
-  }
+    @SubscribeMessage('update')
+    handleUpdating(client: Socket, data: {
+        clientId: string;
+        x: number;
+        y: number;
+    }) {
+        this.logger.log('update')
+        this.gameService.players.forEach(player => {
+            if (player.id === data.clientId) {
+                player.x = data.x
+                player.y = data.y
+            }
+        })
+
+        this.wss.emit('update', {id: data.clientId, x: data.x, y: data.y})
+    }
+
+    @SubscribeMessage('start')
+    handleGameStarting() {
+        this.wss.emit('start')
+    }
 }

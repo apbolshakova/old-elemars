@@ -41,7 +41,7 @@ const frontForestWidth = 4674
 // Сокет для мультиплеера
 let socket = null
 let gameId = null
-const clientId = '1'
+const clientId = '2'
 
 /**
  * Получить число в заданном диапазоне
@@ -57,40 +57,40 @@ function rand(low, high) {
  */
 const assetLoader = (function() {
     this.imgs = {
-        bg: 'img/map/sky.jpg',
-        bg2: 'img/map/sky-2.jpg',
-        bg3: 'img/map/sky-3.jpg',
+        bg: './../img/map/sky.jpg',
+        bg2: './../img/map/sky-2.jpg',
+        bg3: './../img/map/sky-3.jpg',
 
-        iceRun: 'img/ice/ice_run.png',
-        iceJump: 'img/ice/ice_jump.png',
+        iceRun: './../img/ice/ice_run.png',
+        iceJump: './../img/ice/ice_jump.png',
 
-        fireRun: 'img/fire/fire_run.png',
-        fireJump: 'img/fire/fire_jump.png',
+        fireRun: './../img/fire/fire_run.png',
+        fireJump: './../img/fire/fire_jump.png',
 
-        cloud1: 'img/map/clouds/cloud-1.png',
-        cloud2: 'img/map/clouds/cloud-2.png',
-        cloud3: 'img/map/clouds/cloud-3.png',
-        cloud4: 'img/map/clouds/cloud-4.png',
+        cloud1: './../img/map/clouds/cloud-1.png',
+        cloud2: './../img/map/clouds/cloud-2.png',
+        cloud3: './../img/map/clouds/cloud-3.png',
+        cloud4: './../img/map/clouds/cloud-4.png',
 
-        tree1: 'img/map/forest/tree-1.png',
-        tree2: 'img/map/forest/tree-2.png',
-        tree3: 'img/map/forest/tree-3.png',
+        tree1: './../img/map/forest/tree-1.png',
+        tree2: './../img/map/forest/tree-2.png',
+        tree3: './../img/map/forest/tree-3.png',
 
-        bush1: 'img/map/forest/bush-1.png',
-        bush2: 'img/map/forest/bush-2.png',
-        bush3: 'img/map/forest/bush-3.png',
-        bush4: 'img/map/forest/bush-4.png',
-        bush5: 'img/map/forest/bush-5.png',
-        bush6: 'img/map/forest/bush-6.png',
+        bush1: './../img/map/forest/bush-1.png',
+        bush2: './../img/map/forest/bush-2.png',
+        bush3: './../img/map/forest/bush-3.png',
+        bush4: './../img/map/forest/bush-4.png',
+        bush5: './../img/map/forest/bush-5.png',
+        bush6: './../img/map/forest/bush-6.png',
 
-        grass: 'img/map/ground.png',
-        water: 'img/map/obstacles/water.png',
+        grass: './../img/map/ground.png',
+        water: './../img/map/obstacles/water.png',
 
-        smallPlatform: 'img/map/obstacles/small-platform.png',
-        bigPlatform: 'img/map/obstacles/big-platform.png',
-        log: 'img/map/obstacles/log.png',
-        brokenTree: 'img/map/obstacles/broken-tree.png',
-        meteorite: 'img/map/obstacles/meteorite.png',
+        smallPlatform: './../img/map/obstacles/small-platform.png',
+        bigPlatform: './../img/map/obstacles/big-platform.png',
+        log: './../img/map/obstacles/log.png',
+        brokenTree: './../img/map/obstacles/broken-tree.png',
+        meteorite: './../img/map/obstacles/meteorite.png',
     }
 
     this.sounds = {}
@@ -1052,7 +1052,7 @@ function mainMenu() {
     document.querySelectorAll('.back').forEach(
         el =>
             (el.onclick = function() {
-                socket.emit('deleteGame', gameId)
+                socket.emit('deleteGame', gameId);
                 document.querySelector('#credits').style.display = 'none'
                 document.querySelector('#game-over').style.display = 'none'
                 document.querySelector('#main').style.display = 'block'
@@ -1061,23 +1061,11 @@ function mainMenu() {
             }),
     )
 
-    document.querySelector('#start-solo-game-btn').onclick = function() {
-        document.querySelector('#main').style.display = 'none'
-        document.querySelector('#solo-game-preview').style.display = 'block'
-    }
-
-    document.querySelector('#start-multi-game-btn').onclick = function() {
+    document.querySelector('#join-game-btn').onclick = function() {
         document.querySelector('#main').style.display = 'none'
         document.querySelector('#multi-game-preview').style.display = 'block'
-        createMultiplayerGame()
+        joinMultiplayerGame();
     }
-
-    document.querySelectorAll('.play').forEach(button => {
-        button.onclick = function() {
-            socket.emit('start', gameId);
-            // startGame()
-        }
-    })
 }
 
 document.querySelector('.restart').onclick = function() {
@@ -1171,7 +1159,6 @@ document.querySelector('#download-result').onclick = function() {
  * Начало игры
  */
 function startGame() {
-    document.querySelector('#solo-game-preview').style.display = 'none'
     document.querySelector('#multi-game-preview').style.display = 'none'
     document.querySelector('#menu').style.display = 'none'
 
@@ -1231,16 +1218,7 @@ function initSocket() {
 
     socket.on('connect', () => {
         console.log('Connected to WS server')
-        document.querySelector('#start-multi-game-btn').classList.remove('hidden')
-    })
-
-    socket.on('createSuccess', () => {
-        document.querySelector('.join-link').innerHTML =
-            'https://elemars.netlify.app/' + gameId
-    })
-
-    socket.on('createFail', errMsg => {
-        alert('Не удалось создать игру! ', errMsg)
+        document.querySelector('#join-game-btn').classList.remove('hidden')
     })
 
     socket.on('joinSuccess', (data) => {
@@ -1260,7 +1238,6 @@ function initSocket() {
     })
 
     socket.on('update', (data) => {
-        debugger;
         otherPlayers.map(otherPlayer => {
             if (otherPlayer.id === data.id) {
                 otherPlayer.x = data.x;
@@ -1270,19 +1247,16 @@ function initSocket() {
     })
 
     socket.on('start', () => {
+        debugger;
         startGame();
     })
 
     socket.connect()
 }
 
-function createMultiplayerGame() {
-    socket.emit('deleteGame', gameId)
+function joinMultiplayerGame() {
     gameId = 'example'
-    socket.emit('create', {
-        gameId: gameId,
-        level: level,
-    })
+    const clientId = '2'
     socket.emit('join', {
         clientId: clientId,
         gameId: gameId,
