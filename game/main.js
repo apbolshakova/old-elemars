@@ -1,34 +1,47 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let score; // Содержит счёт во время игры
-let stop; // Булевая переменная, окончена ли игра
-let ground = []; // Земля и платформы
-let obstacles = []; // Препятствия
-let selectedCharacter = 'ice'; // Выбранный персонаж
-let level = 1; // Выбранный уровень сложности
-let player;
+const app = new Vue({
+    el: '#app',
+    data: {
+        socket: null,
+    },
+    methods: {},
+    created() {
+    },
+})
 
-let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
-if (!bestScore) bestScore = {score: 0};
+const canvas = document.getElementById('canvas')
+const ctx = canvas.getContext('2d')
+let score // Содержит счёт во время игры
+let stop // Булевая переменная, окончена ли игра
+let ground = [] // Земля и платформы
+let obstacles = [] // Препятствия
+let selectedCharacter = 'ice' // Выбранный персонаж
+let level = 1 // Выбранный уровень сложности
+let player // Текущий персонаж
+let otherPlayers = [] // Персонажи других игроков
+
+let bestScore = JSON.parse(localStorage.getItem('bestScore')) // Лучший локально сохранённый результат: {name, score, character}
+if (!bestScore) bestScore = { score: 0 }
 if (!bestScore.score)
     document.querySelector('.last_best_score').innerHTML =
-        'Рекорд: пока никто не сохранял. Стань первым!';
+        'Рекорд: пока никто не сохранял. Стань первым!'
 else {
     document.querySelector('.last_best_score').innerHTML =
         'Рекорд: ' +
         bestScore.score +
         ' очков. Игрока звали ' +
         (bestScore.name || 'никак') +
-        '.';
+        '.'
 }
 
 // Параметры игры
-const gameWidth = canvas.width - 5; // -5 для более плавных границ соединения спрайтов
-const gameHeight = canvas.height;
-const frontForestWidth = 4674;
+const gameWidth = canvas.width - 5 // -5 для более плавных границ соединения спрайтов
+const gameHeight = canvas.height
+const frontForestWidth = 4674
 
 // Сокет для мультиплеера
-let socket = null;
+let socket = null
+let gameId = null
+const clientId = '1'
 
 /**
  * Получить число в заданном диапазоне
@@ -36,13 +49,13 @@ let socket = null;
  * @param high {number}
  */
 function rand(low, high) {
-    return Math.floor(Math.random() * (high - low + 1) + low);
+    return Math.floor(Math.random() * (high - low + 1) + low)
 }
 
 /**
  * Предзагрузка файлов
  */
-const assetLoader = (function () {
+const assetLoader = (function() {
     this.imgs = {
         bg: 'img/map/sky.jpg',
         bg2: 'img/map/sky-2.jpg',
@@ -78,14 +91,14 @@ const assetLoader = (function () {
         log: 'img/map/obstacles/log.png',
         brokenTree: 'img/map/obstacles/broken-tree.png',
         meteorite: 'img/map/obstacles/meteorite.png',
-    };
+    }
 
-    this.sounds = {};
+    this.sounds = {}
 
-    let assetsLoaded = 0; // Сколько файлов было загружено
-    const numImgs = Object.keys(this.imgs).length; // Сколько картинок нужно загрузить
-    const numSounds = Object.keys(this.sounds).length; // Сколько звуков нужно загрузить
-    this.totalAssest = numImgs + numSounds; // Сколько всего файлов нужно загрузить
+    let assetsLoaded = 0 // Сколько файлов было загружено
+    const numImgs = Object.keys(this.imgs).length // Сколько картинок нужно загрузить
+    const numSounds = Object.keys(this.sounds).length // Сколько звуков нужно загрузить
+    this.totalAssest = numImgs + numSounds // Сколько всего файлов нужно загрузить
 
     /**
      * Обновление статуса файла, когда он загрузился
@@ -93,22 +106,22 @@ const assetLoader = (function () {
      * @param {string} name - Название ресурса
      */
     function assetLoaded(dic, name) {
-        const {finished, totalAssest, progress} = this;
+        const { finished, totalAssest, progress } = this
 
         // Если файл уже был загружен, то можно не обрабатывать
         if (this[dic][name].status !== 'loading') {
-            return;
+            return
         }
 
-        this[dic][name].status = 'loaded';
-        assetsLoaded++;
+        this[dic][name].status = 'loaded'
+        assetsLoaded++
 
         // Коллбек для отображения прогресса загрузки
-        progress(assetsLoaded, totalAssest);
+        progress(assetsLoaded, totalAssest)
 
         // Коллбек конца загрузки
         if (assetsLoaded === totalAssest) {
-            finished();
+            finished()
         }
     }
 
@@ -117,18 +130,18 @@ const assetLoader = (function () {
      * @param {object} sound - Имя звукового ресурса
      */
     function _checkAudioState(sound) {
-        const {sounds} = this;
+        const { sounds } = this
         if (sounds[sound].status === 'loading' && sounds[sound].readyState === 4) {
-            assetLoaded.call(this, 'sounds', sound);
+            assetLoaded.call(this, 'sounds', sound)
         }
     }
 
     /**
      * Загрузка картинок и аудио
      */
-    this.downloadAll = function () {
-        const _this = this;
-        let src;
+    this.downloadAll = function() {
+        const _this = this
+        let src
 
         // Загрузка изображений
         for (let img in this.imgs) {
@@ -136,15 +149,15 @@ const assetLoader = (function () {
                 src = this.imgs[img];
 
                 // Замыкание для загрузки отдельной картинки
-                (function (_this, img) {
-                    _this.imgs[img] = new Image();
-                    _this.imgs[img].status = 'loading';
-                    _this.imgs[img].name = img;
-                    _this.imgs[img].onload = function () {
-                        assetLoaded.call(_this, 'imgs', img);
-                    };
-                    _this.imgs[img].src = src;
-                })(_this, img);
+                (function(_this, img) {
+                    _this.imgs[img] = new Image()
+                    _this.imgs[img].status = 'loading'
+                    _this.imgs[img].name = img
+                    _this.imgs[img].onload = function() {
+                        assetLoaded.call(_this, 'imgs', img)
+                    }
+                    _this.imgs[img].src = src
+                })(_this, img)
             }
         }
 
@@ -154,46 +167,46 @@ const assetLoader = (function () {
                 src = this.sounds[sound];
 
                 // Замыкание для загрузки отдельного аудио
-                (function (_this, sound) {
-                    _this.sounds[sound] = new Audio();
-                    _this.sounds[sound].status = 'loading';
-                    _this.sounds[sound].name = sound;
-                    _this.sounds[sound].addEventListener('canplay', function () {
-                        _checkAudioState.call(_this, sound);
-                    });
-                    _this.sounds[sound].src = src;
-                    _this.sounds[sound].preload = 'auto';
-                    _this.sounds[sound].load();
-                })(_this, sound);
+                (function(_this, sound) {
+                    _this.sounds[sound] = new Audio()
+                    _this.sounds[sound].status = 'loading'
+                    _this.sounds[sound].name = sound
+                    _this.sounds[sound].addEventListener('canplay', function() {
+                        _checkAudioState.call(_this, sound)
+                    })
+                    _this.sounds[sound].src = src
+                    _this.sounds[sound].preload = 'auto'
+                    _this.sounds[sound].load()
+                })(_this, sound)
             }
         }
-    };
+    }
 
     return {
         imgs: this.imgs,
         sounds: this.sounds,
         totalAssest: this.totalAssest,
         downloadAll: this.downloadAll,
-    };
-})();
+    }
+})()
 
 /**
  * Обновить статус-бар загрузки, вызывается выше когда что-то догрузилось
  * @param {number} progress - Количество уже загруженный ресурсов
  * @param {number} total - Общее количество ресурсов, которые нужно загрузить
  */
-assetLoader.progress = function (progress, total) {
-    const pBar = document.querySelector('#progress-bar');
-    pBar.value = progress / total;
-    document.querySelector('#p').innerHTML = Math.round(pBar.value * 100) + '%';
-};
+assetLoader.progress = function(progress, total) {
+    const pBar = document.querySelector('#progress-bar')
+    pBar.value = progress / total
+    document.querySelector('#p').innerHTML = Math.round(pBar.value * 100) + '%'
+}
 
 /**
  * Загрузка главного меню
  */
-assetLoader.finished = function () {
-    mainMenu();
-};
+assetLoader.finished = function() {
+    mainMenu()
+}
 
 /**
  * Создание Spritesheet
@@ -202,17 +215,17 @@ assetLoader.finished = function () {
  * @param {number} frameHeight - Высота (в px) каждого кадра
  */
 function SpriteSheet(path, frameWidth, frameHeight) {
-    this.image = new Image();
-    this.frameWidth = frameWidth;
-    this.frameHeight = frameHeight;
+    this.image = new Image()
+    this.frameWidth = frameWidth
+    this.frameHeight = frameHeight
 
     // Вычисление количества кадров в одном ряду спрайта
-    const self = this;
-    this.image.onload = function () {
-        self.framesPerRow = Math.floor(self.image.width / self.frameWidth);
-    };
+    const self = this
+    this.image.onload = function() {
+        self.framesPerRow = Math.floor(self.image.width / self.frameWidth)
+    }
 
-    this.image.src = path;
+    this.image.src = path
 }
 
 /**
@@ -223,39 +236,39 @@ function SpriteSheet(path, frameWidth, frameHeight) {
  * @param {number} endFrame - Repeat the animation once completed.
  */
 function Animation(spritesheet, frameSpeed, startFrame, endFrame) {
-    const animationSequence = []; // Массив кадров для анимации
-    let currentFrame = 0; // Текущий кадр анимации
-    let counter = 0; // Переменная для правильного времени смены кадра анимации
+    const animationSequence = [] // Массив кадров для анимации
+    let currentFrame = 0 // Текущий кадр анимации
+    let counter = 0 // Переменная для правильного времени смены кадра анимации
 
     // Добавление в массив анимации всех кадров
     for (let frameNumber = startFrame; frameNumber <= endFrame; frameNumber++)
-        animationSequence.push(frameNumber);
+        animationSequence.push(frameNumber)
 
     /**
      * Пересчёт кадра анимации, который должен быть отрисован
      */
-    this.update = function () {
+    this.update = function() {
         // Сменить номер текущего кадра, если наступил нужный момент
         if (counter === frameSpeed - 1)
-            currentFrame = (currentFrame + 1) % animationSequence.length;
+            currentFrame = (currentFrame + 1) % animationSequence.length
 
         // Установка следующего момента, когда нужно менять кадр
-        counter = (counter + 1) % frameSpeed;
-    };
+        counter = (counter + 1) % frameSpeed
+    }
 
     /**
      * Отрисовка кадра анимации
      * @param {number} x
      * @param {number} y
      */
-    this.draw = function (x, y) {
+    this.draw = function(x, y) {
         // Получение позиции кадра анимации в файле спрайта
         const row = Math.floor(
             animationSequence[currentFrame] / spritesheet.framesPerRow,
-        );
+        )
         const col = Math.floor(
             animationSequence[currentFrame] % spritesheet.framesPerRow,
-        );
+        )
 
         ctx.drawImage(
             spritesheet.image,
@@ -267,62 +280,62 @@ function Animation(spritesheet, frameSpeed, startFrame, endFrame) {
             y,
             spritesheet.frameWidth,
             spritesheet.frameHeight,
-        );
-    };
+        )
+    }
 }
 
 /**
  * Обработка заднего плана
  */
-const background = (function () {
-    const cloudsPerScreen = 4;
-    const backForestPerScreen = 6;
-    const frontForestPerScreen = 12;
+const background = (function() {
+    const cloudsPerScreen = 4
+    const backForestPerScreen = 6
+    const frontForestPerScreen = 12
 
-    const clouds = {}; // Облака: x, speed, elements: {x, y, type}
-    const backForest = {}; // Лес на заднем плане: x, speed, elements: {x, y, type}
-    const backGrass = {}; // Слой земли на заднем плане: x, y, speed
-    const frontForest = {}; // Лес на переднем плане: x, speed, elements: {x, y, type}
+    const clouds = {} // Облака: x, speed, elements: {x, y, type}
+    const backForest = {} // Лес на заднем плане: x, speed, elements: {x, y, type}
+    const backGrass = {} // Слой земли на заднем плане: x, y, speed
+    const frontForest = {} // Лес на переднем плане: x, speed, elements: {x, y, type}
 
     /**
      * Сдвиг элементов в зависимости от скорости и их отрисовка
      */
-    this.draw = function () {
+    this.draw = function() {
         // Фон в зависимости от уровня
         switch (level) {
             case 2:
-                ctx.drawImage(assetLoader.imgs.bg2, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg2, 0, 0)
+                break
             case 3:
-                ctx.drawImage(assetLoader.imgs.bg3, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg3, 0, 0)
+                break
             default:
-                ctx.drawImage(assetLoader.imgs.bg, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg, 0, 0)
+                break
         }
 
         // Сдвинуть элементы
-        clouds.x -= clouds.speed;
-        backForest.x -= backForest.speed;
-        backGrass.x -= backGrass.speed;
-        frontForest.x -= frontForest.speed;
+        clouds.x -= clouds.speed
+        backForest.x -= backForest.speed
+        backGrass.x -= backGrass.speed
+        frontForest.x -= frontForest.speed
 
         // Отрисовка каждого элемента с поправкой на экран, где элемент находится (до, в кадре, после)
 
         clouds.elements.forEach((cloud, cloudNum) => {
-            let cloudImg;
+            let cloudImg
             switch (cloud.type) {
                 case 1:
-                    cloudImg = assetLoader.imgs.cloud1;
-                    break;
+                    cloudImg = assetLoader.imgs.cloud1
+                    break
                 case 2:
-                    cloudImg = assetLoader.imgs.cloud2;
-                    break;
+                    cloudImg = assetLoader.imgs.cloud2
+                    break
                 case 3:
-                    cloudImg = assetLoader.imgs.cloud3;
-                    break;
+                    cloudImg = assetLoader.imgs.cloud3
+                    break
                 default:
-                    cloudImg = assetLoader.imgs.cloud4;
+                    cloudImg = assetLoader.imgs.cloud4
             }
 
             switch (Math.floor(cloudNum / cloudsPerScreen)) {
@@ -331,31 +344,31 @@ const background = (function () {
                         cloudImg,
                         -1 * canvas.width + clouds.x + cloud.x,
                         cloud.y,
-                    );
-                    break;
+                    )
+                    break
                 case 1:
-                    ctx.drawImage(cloudImg, clouds.x + cloud.x, cloud.y);
-                    break;
+                    ctx.drawImage(cloudImg, clouds.x + cloud.x, cloud.y)
+                    break
                 case 2:
                     ctx.drawImage(
                         cloudImg,
                         1 * canvas.width + clouds.x + cloud.x,
                         cloud.y,
-                    );
+                    )
             }
-        });
+        })
 
         backForest.elements.forEach((forestEl, forestElNum) => {
-            let elImg;
+            let elImg
             switch (forestEl.type) {
                 case 1:
-                    elImg = assetLoader.imgs.tree1;
-                    break;
+                    elImg = assetLoader.imgs.tree1
+                    break
                 case 2:
-                    elImg = assetLoader.imgs.tree2;
-                    break;
+                    elImg = assetLoader.imgs.tree2
+                    break
                 default:
-                    elImg = assetLoader.imgs.tree3;
+                    elImg = assetLoader.imgs.tree3
             }
 
             switch (Math.floor(forestElNum / backForestPerScreen)) {
@@ -366,8 +379,8 @@ const background = (function () {
                         forestEl.y,
                         elImg.width * 0.75,
                         elImg.height * 0.75,
-                    );
-                    break;
+                    )
+                    break
                 case 1:
                     ctx.drawImage(
                         elImg,
@@ -375,8 +388,8 @@ const background = (function () {
                         forestEl.y,
                         elImg.width * 0.75,
                         elImg.height * 0.75,
-                    );
-                    break;
+                    )
+                    break
                 case 2:
                     ctx.drawImage(
                         elImg,
@@ -384,9 +397,9 @@ const background = (function () {
                         forestEl.y,
                         elImg.width * 0.75,
                         elImg.height * 0.75,
-                    );
+                    )
             }
-        });
+        })
 
         for (let i = -1; i <= 1; i++) {
             ctx.drawImage(
@@ -395,43 +408,43 @@ const background = (function () {
                 backGrass.y,
                 assetLoader.imgs.grass.width,
                 assetLoader.imgs.grass.height * 2,
-            );
+            )
         }
 
-        ctx.filter = 'opacity(50%)';
+        ctx.filter = 'opacity(50%)'
         switch (level) {
             case 2:
-                ctx.drawImage(assetLoader.imgs.bg2, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg2, 0, 0)
+                break
             case 3:
-                ctx.drawImage(assetLoader.imgs.bg3, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg3, 0, 0)
+                break
             default:
-                ctx.drawImage(assetLoader.imgs.bg, 0, 0);
-                break;
+                ctx.drawImage(assetLoader.imgs.bg, 0, 0)
+                break
         }
-        ctx.filter = 'none';
+        ctx.filter = 'none'
 
         frontForest.elements.forEach((forestEl, forestElNum) => {
-            let elImg;
+            let elImg
             switch (forestEl.type) {
                 case 1:
-                    elImg = assetLoader.imgs.bush1;
-                    break;
+                    elImg = assetLoader.imgs.bush1
+                    break
                 case 2:
-                    elImg = assetLoader.imgs.bush2;
-                    break;
+                    elImg = assetLoader.imgs.bush2
+                    break
                 case 3:
-                    elImg = assetLoader.imgs.bush3;
-                    break;
+                    elImg = assetLoader.imgs.bush3
+                    break
                 case 4:
-                    elImg = assetLoader.imgs.bush4;
-                    break;
+                    elImg = assetLoader.imgs.bush4
+                    break
                 case 5:
-                    elImg = assetLoader.imgs.bush5;
-                    break;
+                    elImg = assetLoader.imgs.bush5
+                    break
                 default:
-                    elImg = assetLoader.imgs.bush6;
+                    elImg = assetLoader.imgs.bush6
             }
 
             switch (Math.floor(forestElNum / frontForestPerScreen)) {
@@ -440,109 +453,109 @@ const background = (function () {
                         elImg,
                         -1 * frontForestWidth + frontForest.x + forestEl.x,
                         forestEl.y,
-                    );
-                    break;
+                    )
+                    break
                 case 1:
-                    ctx.drawImage(elImg, frontForest.x + forestEl.x, forestEl.y);
-                    break;
+                    ctx.drawImage(elImg, frontForest.x + forestEl.x, forestEl.y)
+                    break
                 case 2:
                     ctx.drawImage(
                         elImg,
                         frontForestWidth + frontForest.x + forestEl.x,
                         forestEl.y,
-                    );
+                    )
             }
-        });
+        })
 
         // Если слой проскроллен до конца, то сгенерировать новый экран
         if (clouds.x + gameWidth <= 0) {
-            clouds.x = 0;
-            clouds.elements = clouds.elements.slice(cloudsPerScreen);
+            clouds.x = 0
+            clouds.elements = clouds.elements.slice(cloudsPerScreen)
             for (let i = 0; i < cloudsPerScreen; i++) {
                 clouds.elements.push({
                     x: rand(0, gameWidth - 840),
                     y: rand(0, gameHeight - 600),
                     type: rand(1, 4),
-                });
+                })
             }
         }
 
         if (backForest.x + gameWidth <= 0) {
-            backForest.x = 0;
-            backForest.elements = backForest.elements.slice(backForestPerScreen);
+            backForest.x = 0
+            backForest.elements = backForest.elements.slice(backForestPerScreen)
             for (let i = 0; i < backForestPerScreen; i++) {
                 backForest.elements.push({
                     x: rand(0, gameWidth - 730),
                     y: 90,
                     type: rand(1, 3),
-                });
+                })
             }
         }
 
         if (backGrass.x + gameWidth <= 0) {
-            backGrass.x = 0;
+            backGrass.x = 0
         }
 
         if (frontForest.x + frontForestWidth <= 0) {
-            frontForest.x = 0;
-            frontForest.elements = frontForest.elements.slice(frontForestPerScreen);
+            frontForest.x = 0
+            frontForest.elements = frontForest.elements.slice(frontForestPerScreen)
             for (let i = 0; i < frontForestPerScreen; i++) {
                 frontForest.elements.push({
                     x: rand(0, frontForestWidth - 834 - 710),
                     y: 600,
                     type: rand(1, 6),
-                });
+                })
             }
         }
-    };
+    }
 
     /**
      * Начальное состояние заднего плана
      */
-    this.reset = function () {
-        clouds.x = -gameWidth;
-        clouds.speed = 1;
-        clouds.elements = [];
+    this.reset = function() {
+        clouds.x = -gameWidth
+        clouds.speed = 1
+        clouds.elements = []
         for (let i = 0; i < cloudsPerScreen * 3; i++) {
             clouds.elements.push({
                 x: rand(0, gameWidth - 840),
                 y: rand(0, gameHeight - 600),
                 type: rand(1, 4),
-            });
+            })
         }
 
-        backForest.x = -gameWidth;
-        backForest.speed = 5;
-        backForest.elements = [];
+        backForest.x = -gameWidth
+        backForest.speed = 5
+        backForest.elements = []
         for (let i = 0; i < backForestPerScreen * 3; i++) {
             backForest.elements.push({
                 x: rand(0, gameWidth - 730),
                 y: 90,
                 type: rand(1, 3),
-            });
+            })
         }
 
-        backGrass.x = -gameWidth;
-        backGrass.y = 655;
-        backGrass.speed = 5;
+        backGrass.x = -gameWidth
+        backGrass.y = 655
+        backGrass.speed = 5
 
-        frontForest.x = -frontForestWidth;
-        frontForest.speed = player.speed;
-        frontForest.elements = [];
+        frontForest.x = -frontForestWidth
+        frontForest.speed = player.speed
+        frontForest.elements = []
         for (let i = 0; i < frontForestPerScreen * 3; i++) {
             frontForest.elements.push({
                 x: rand(0, frontForestWidth - 834 - 710),
                 y: 600,
                 type: rand(1, 6),
-            });
+            })
         }
-    };
+    }
 
     return {
         draw: this.draw,
         reset: this.reset,
-    };
-})();
+    }
+})()
 
 /**
  * Вектор
@@ -553,39 +566,39 @@ const background = (function () {
  */
 function Vector(x, y, dx, dy) {
     // Позиция
-    this.x = x || 0;
-    this.y = y || 0;
+    this.x = x || 0
+    this.y = y || 0
     // Направление
-    this.dx = dx || 0;
-    this.dy = dy || 0;
+    this.dx = dx || 0
+    this.dy = dy || 0
 }
 
 /**
  * Сдвиг вектора на dx и dy
  */
-Vector.prototype.advance = function () {
-    this.x += this.dx;
-    this.y += this.dy;
-};
+Vector.prototype.advance = function() {
+    this.x += this.dx
+    this.y += this.dy
+}
 
 /**
  * Объект персонажа
  */
 function createPlayer(player) {
-    let jumpCounter; // Сколько кадров будет продолжаться движение вверх при прыжке
+    let jumpCounter // Сколько кадров будет продолжаться движение вверх при прыжке
 
-    player.width = 500;
-    player.height = 458;
-    player.speed = 5 + 5 * level;
-    player.dy = 0;
+    player.width = 500
+    player.height = 458
+    player.speed = 5 + 5 * level
+    player.dy = 0
 
     // Параметры прыжка
     if (level === 1) {
-        player.gravity = 0.4;
-        player.jumpDy = -20;
+        player.gravity = 0.4
+        player.jumpDy = -20
     } else {
-        player.gravity = 1;
-        player.jumpDy = -30;
+        player.gravity = 1
+        player.jumpDy = -30
     }
 
     // Spritesheets
@@ -594,78 +607,124 @@ function createPlayer(player) {
             assetLoader.imgs.iceRun.src,
             player.width,
             player.height,
-        );
+        )
         player.jumpSheet = new SpriteSheet(
             assetLoader.imgs.iceJump.src,
             player.width,
             player.height,
-        );
+        )
     }
     if (selectedCharacter === 'fire') {
         player.walkSheet = new SpriteSheet(
             assetLoader.imgs.fireRun.src,
             player.width,
             player.height,
-        );
+        )
         player.jumpSheet = new SpriteSheet(
             assetLoader.imgs.fireJump.src,
             player.width,
             player.height,
-        );
+        )
     }
-    player.walkAnim = new Animation(player.walkSheet, 2, 0, 26);
-    player.jumpAnim = new Animation(player.jumpSheet, 2, 0, 26);
-    player.anim = player.walkAnim;
+    player.walkAnim = new Animation(player.walkSheet, 2, 0, 26)
+    player.jumpAnim = new Animation(player.jumpSheet, 2, 0, 26)
+    player.anim = player.walkAnim
 
-    Vector.call(player, 0, 0, 0, player.dy);
+    Vector.call(player, 0, 0, 0, player.dy)
 
     /**
      * Обновление данных о персонаже и перерисовка спрайта
      */
-    player.update = function () {
-        if (level > 1 && KEY_STATUS['KeyD']) player.dx = 10;
-        else if (level > 1 && KEY_STATUS['KeyA']) player.dx = -10;
-        else player.dx = 0;
+    player.update = function() {
+        if (level > 1 && KEY_STATUS['KeyD']) player.dx = 10
+        else if (level > 1 && KEY_STATUS['KeyA']) player.dx = -10
+        else player.dx = 0
 
         // Прыгнуть, если нажали на W и персонаж не прыгает
         if (KEY_STATUS['KeyW'] && player.dy === 0 && !player.isJumping) {
-            player.isJumping = true;
-            player.dy = player.jumpDy;
+            player.isJumping = true
+            player.dy = player.jumpDy
         }
         if (player.isJumping) {
-            player.dy += player.gravity;
+            player.dy += player.gravity
         }
 
-        jumpCounter = Math.max(jumpCounter - 1, 0);
+        jumpCounter = Math.max(jumpCounter - 1, 0)
 
-        this.advance();
+        this.advance()
 
         // Смена анимации
         if (player.isJumping) {
-            player.anim = player.jumpAnim;
+            player.anim = player.jumpAnim
         } else {
-            player.anim = player.walkAnim;
+            player.anim = player.walkAnim
         }
 
-        player.anim.update();
-    };
+        player.anim.update()
+    }
 
     /**
      * Отрисовка персонажа
      */
-    player.draw = function () {
-        player.anim.draw(player.x, player.y + 70);
-    };
+    player.draw = function() {
+        player.anim.draw(player.x, player.y + 70)
+    }
 
     /**
      * Сброс позиции персонажа
      */
-    player.reset = function () {
-        player.x = 0;
-        player.y = 0;
-    };
+    player.reset = function() {
+        player.x = rand(0, 100)
+        player.y = 0
+    }
 
-    return player;
+    return player
+}
+
+/**
+ * Объект персонажа
+ */
+function createOtherPlayer(otherPlayer) {
+    otherPlayer.width = 500
+    otherPlayer.height = 458
+
+    // Spritesheets
+    if (otherPlayer.character === 'ice') {
+        otherPlayer.walkSheet = new SpriteSheet(
+            assetLoader.imgs.iceRun.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        )
+        otherPlayer.jumpSheet = new SpriteSheet(
+            assetLoader.imgs.iceJump.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        )
+    }
+    if (otherPlayer.character === 'fire') {
+        otherPlayer.walkSheet = new SpriteSheet(
+            assetLoader.imgs.fireRun.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        )
+        otherPlayer.jumpSheet = new SpriteSheet(
+            assetLoader.imgs.fireJump.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        )
+    }
+    otherPlayer.walkAnim = new Animation(otherPlayer.walkSheet, 2, 0, 26)
+    otherPlayer.jumpAnim = new Animation(otherPlayer.jumpSheet, 2, 0, 26)
+    otherPlayer.anim = otherPlayer.walkAnim
+
+    /**
+     * Отрисовка персонажа
+     */
+    otherPlayer.draw = function() {
+        otherPlayer.anim.draw(otherPlayer.x, otherPlayer.y + 70)
+    }
+
+    return otherPlayer
 }
 
 /**
@@ -679,67 +738,67 @@ function createPlayer(player) {
  * @param {number} speedY - на сколько должен сдвигаться каждый кадр
  */
 function Sprite(x = 0, y = 0, width = 0, height = 0, type = null, speedX, speedY) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.type = type;
-    this.speedX = speedX;
-    this.speedY = speedY;
-    Vector.call(this, x, y, 0, 0);
+    this.x = x
+    this.y = y
+    this.width = width
+    this.height = height
+    this.type = type
+    this.speedX = speedX
+    this.speedY = speedY
+    Vector.call(this, x, y, 0, 0)
 
     /**
      * Сдвиг спрайта в зависимости от скорости персонажа
      */
-    this.update = function () {
-        this.dx = -player.speed + this.speedX;
-        this.dy = this.speedY;
-        this.advance();
-    };
+    this.update = function() {
+        this.dx = -player.speed + this.speedX
+        this.dy = this.speedY
+        this.advance()
+    }
 
     /**
      * Отрисовка спрайта
      */
-    this.draw = function () {
+    this.draw = function() {
         if (this.type) {
-            ctx.save();
-            ctx.drawImage(assetLoader.imgs[this.type], this.x, this.y);
-            ctx.restore();
+            ctx.save()
+            ctx.drawImage(assetLoader.imgs[this.type], this.x, this.y)
+            ctx.restore()
         }
-    };
+    }
 }
 
-Sprite.prototype = Object.create(Vector.prototype);
+Sprite.prototype = Object.create(Vector.prototype)
 
 /**
  * Перерисовка земли и платформ, проверка столкновения с игроком
  */
 function updateGround() {
-    const groundElementsPerScreen = 4; // 2 земли и 2 платформы
+    const groundElementsPerScreen = 4 // 2 земли и 2 платформы
     // Ground - элементы по которым элемар может бегать: x, elements: Array[]{x, y, type}
-    player.isJumping = true;
-    let xCoordWithOffset;
+    player.isJumping = true
+    let xCoordWithOffset
 
-    ground.x -= player.speed;
+    ground.x -= player.speed
     for (let i = 0; i < ground.elements.length; i++) {
         switch (Math.floor(i / groundElementsPerScreen)) {
             case 0:
-                ground.elements[i].x += -1 * frontForestWidth + ground.x;
-                xCoordWithOffset = ground.elements[i].x;
-                ground.elements[i].draw();
-                ground.elements[i].x -= -1 * frontForestWidth + ground.x;
-                break;
+                ground.elements[i].x += -1 * frontForestWidth + ground.x
+                xCoordWithOffset = ground.elements[i].x
+                ground.elements[i].draw()
+                ground.elements[i].x -= -1 * frontForestWidth + ground.x
+                break
             case 1:
-                ground.elements[i].x += ground.x;
-                xCoordWithOffset = ground.elements[i].x;
-                ground.elements[i].draw();
-                ground.elements[i].x -= ground.x;
-                break;
+                ground.elements[i].x += ground.x
+                xCoordWithOffset = ground.elements[i].x
+                ground.elements[i].draw()
+                ground.elements[i].x -= ground.x
+                break
             case 2:
-                ground.elements[i].x += frontForestWidth + ground.x;
-                xCoordWithOffset = ground.elements[i].x;
-                ground.elements[i].draw();
-                ground.elements[i].x -= frontForestWidth + ground.x;
+                ground.elements[i].x += frontForestWidth + ground.x
+                xCoordWithOffset = ground.elements[i].x
+                ground.elements[i].draw()
+                ground.elements[i].x -= frontForestWidth + ground.x
         }
 
         // Обработка приземления игрока на платформу
@@ -749,19 +808,19 @@ function updateGround() {
             xCoordWithOffset <= player.x + player.width / 2 &&
             player.x + player.width / 2 <= xCoordWithOffset + ground.elements[i].width
         ) {
-            player.isJumping = false;
-            player.y = ground.elements[i].y - player.height;
-            player.dy = 0;
+            player.isJumping = false
+            player.y = ground.elements[i].y - player.height
+            player.dy = 0
         }
     }
 
     if (ground.x + frontForestWidth <= 0) {
-        ground.x = 0;
-        ground.elements = ground.elements.slice(groundElementsPerScreen);
-        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
-        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
+        ground.x = 0
+        ground.elements = ground.elements.slice(groundElementsPerScreen)
+        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'))
+        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'))
         for (let i = 0; i < 2; i++) {
-            let isBig = rand(0, 1);
+            let isBig = rand(0, 1)
             if (isBig) {
                 ground.elements.push(
                     new Sprite(
@@ -771,7 +830,7 @@ function updateGround() {
                         412,
                         'bigPlatform',
                     ),
-                );
+                )
             } else {
                 ground.elements.push(
                     new Sprite(
@@ -781,7 +840,7 @@ function updateGround() {
                         353,
                         'smallPlatform',
                     ),
-                );
+                )
             }
         }
     }
@@ -791,38 +850,38 @@ function updateGround() {
  * Обновление состояния всех препятствий, обработка столкновения персонажа с препятствием
  */
 function updateObstacles() {
-    const obstacleElementsPerScreen = 2; // Вода и препятствие
-    let xCoordWithOffset;
+    const obstacleElementsPerScreen = 2 // Вода и препятствие
+    let xCoordWithOffset
     // Препятствия - элементы, при столкновении с которыми конец игры: x, elements: Array[]<{x, y, type, dx, dy}>
 
-    obstacles.x -= player.speed;
+    obstacles.x -= player.speed
     // Анимация препятствий
     for (let i = 0; i < obstacles.elements.length; i++) {
         if (obstacles.elements[i].speedX) {
-            obstacles.elements[i].x += obstacles.elements[i].speedX;
+            obstacles.elements[i].x += obstacles.elements[i].speedX
         }
         if (obstacles.elements[i].speedY) {
-            obstacles.elements[i].y += obstacles.elements[i].speedY;
+            obstacles.elements[i].y += obstacles.elements[i].speedY
         }
 
         switch (Math.floor(i / obstacleElementsPerScreen)) {
             case 0:
-                obstacles.elements[i].x += -1 * frontForestWidth + obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
-                obstacles.elements[i].draw();
-                obstacles.elements[i].x -= -1 * frontForestWidth + obstacles.x;
-                break;
+                obstacles.elements[i].x += -1 * frontForestWidth + obstacles.x
+                xCoordWithOffset = obstacles.elements[i].x
+                obstacles.elements[i].draw()
+                obstacles.elements[i].x -= -1 * frontForestWidth + obstacles.x
+                break
             case 1:
-                obstacles.elements[i].x += obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
-                obstacles.elements[i].draw();
-                obstacles.elements[i].x -= obstacles.x;
-                break;
+                obstacles.elements[i].x += obstacles.x
+                xCoordWithOffset = obstacles.elements[i].x
+                obstacles.elements[i].draw()
+                obstacles.elements[i].x -= obstacles.x
+                break
             case 2:
-                obstacles.elements[i].x += frontForestWidth + obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
-                obstacles.elements[i].draw();
-                obstacles.elements[i].x -= frontForestWidth + obstacles.x;
+                obstacles.elements[i].x += frontForestWidth + obstacles.x
+                xCoordWithOffset = obstacles.elements[i].x
+                obstacles.elements[i].draw()
+                obstacles.elements[i].x -= frontForestWidth + obstacles.x
         }
 
         // Обработка столкновения персонажа с препятствием
@@ -832,49 +891,49 @@ function updateObstacles() {
             player.y <= obstacles.elements[i].y + obstacles.elements[i].height &&
             xCoordWithOffset <= player.x + player.width / 2 &&
             player.x + player.width / 2 <=
-                xCoordWithOffset + obstacles.elements[i].width / 2
+            xCoordWithOffset + obstacles.elements[i].width / 2
         ) {
-            gameOver();
+            gameOver()
         }
     }
 
     if (obstacles.x + frontForestWidth <= 0) {
-        obstacles.x = 0;
-        obstacles.elements = obstacles.elements.slice(obstacleElementsPerScreen);
-        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'));
+        obstacles.x = 0
+        obstacles.elements = obstacles.elements.slice(obstacleElementsPerScreen)
+        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'))
         for (let i = 0; i < obstacleElementsPerScreen - 1; i++) {
-            let type = rand(0, 2);
+            let type = rand(0, 2)
             switch (type) {
                 case 0:
                     obstacles.elements.push(
                         new Sprite(
                             rand(500, frontForestWidth - 619 - 834) +
-                                frontForestWidth * i,
+                            frontForestWidth * i,
                             560,
                             619,
                             452,
                             'brokenTree',
                         ),
-                    );
-                    break;
+                    )
+                    break
                 case 1:
                     obstacles.elements.push(
                         new Sprite(
                             rand(500, frontForestWidth - 492 - 834) +
-                                frontForestWidth * i,
+                            frontForestWidth * i,
                             680,
                             492,
                             394,
                             'log',
                         ),
-                    );
-                    break;
+                    )
+                    break
                 default:
                     if (level > 2) {
                         obstacles.elements.push(
                             new Sprite(
                                 rand(2000, frontForestWidth - 227 - 834) +
-                                    frontForestWidth * i,
+                                frontForestWidth * i,
                                 -3400,
                                 227,
                                 614,
@@ -882,9 +941,9 @@ function updateObstacles() {
                                 -5,
                                 15,
                             ),
-                        );
+                        )
                     } else {
-                        obstacles.elements.push(new Sprite());
+                        obstacles.elements.push(new Sprite())
                     }
             }
         }
@@ -895,13 +954,22 @@ function updateObstacles() {
  * Обновление состояния персонажа
  */
 function updatePlayer() {
-    player.update();
-    player.draw();
+    player.update()
+    player.draw()
+
+    socket.emit('update', {clientId, x: player.x, y: player.y});
 
     // Конец игры, если персонаж упал
     if (player.y + player.height >= canvas.height) {
-        gameOver();
+        gameOver()
     }
+}
+
+function updateOtherPlayers() {
+    otherPlayers.map(otherPlayer => {
+        otherPlayer.anim.update()
+        otherPlayer.draw()
+    });
 }
 
 /**
@@ -909,19 +977,20 @@ function updatePlayer() {
  */
 function animate() {
     if (!stop) {
-        score++;
-        requestAnimFrame(animate);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        score++
+        requestAnimFrame(animate)
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-        background.draw();
+        background.draw()
 
         // Обновление состояния элементов игры
-        updateGround();
-        updateObstacles();
-        updatePlayer();
+        updateGround()
+        updateObstacles()
+        updatePlayer()
+        updateOtherPlayers()
 
         // Отрисовка текущего счёта
-        ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
+        ctx.fillText('Счёт: ' + score, canvas.width - 200, 75)
     }
 }
 
@@ -932,162 +1001,159 @@ const KEY_STATUS = {
     KeyW: false,
     KeyA: false,
     KeyD: false,
-};
+}
 
-document.onkeydown = function (e) {
+document.onkeydown = function(e) {
     if (KEY_STATUS.hasOwnProperty(e.code)) {
-        e.preventDefault();
-        KEY_STATUS[e.code] = true;
+        e.preventDefault()
+        KEY_STATUS[e.code] = true
     }
-};
-document.onkeyup = function (e) {
+}
+document.onkeyup = function(e) {
     if (KEY_STATUS.hasOwnProperty(e.code)) {
-        e.preventDefault();
-        KEY_STATUS[e.code] = false;
+        e.preventDefault()
+        KEY_STATUS[e.code] = false
     }
-};
+}
 
 /**
  * Полифил для получения следующего кадра анимации
  */
-const requestAnimFrame = (function () {
+const requestAnimFrame = (function() {
     return (
         window.requestAnimationFrame ||
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame ||
         window.oRequestAnimationFrame ||
         window.msRequestAnimationFrame ||
-        function (callback) {
-            window.setTimeout(callback, 1000 / 60);
+        function(callback) {
+            window.setTimeout(callback, 1000 / 60)
         }
-    );
-})();
+    )
+})()
 
 /**
  * Отрисовка главного меню
  */
 function mainMenu() {
-    document.querySelector('#progress').style.display = 'none';
-    document.querySelector('#main').style.display = 'block';
-    document.querySelector('#menu').classList.add('main');
+    document.querySelector('#progress').style.display = 'none'
+    document.querySelector('#main').style.display = 'block'
+    document.querySelector('#menu').classList.add('main')
 
     /**
      * Поведение кнопок в главном меню
      */
-    document.querySelector('.credits').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#credits').style.display = 'block';
-        document.querySelector('#menu').classList.add('credits');
-    };
+    document.querySelector('.credits').onclick = function() {
+        document.querySelector('#main').style.display = 'none'
+        document.querySelector('#credits').style.display = 'block'
+        document.querySelector('#menu').classList.add('credits')
+    }
 
     document.querySelectorAll('.back').forEach(
         el =>
-            (el.onclick = function () {
-                document.querySelector('#credits').style.display = 'none';
-                document.querySelector('#old-game-over').style.display = 'none';
-                document.querySelector('#main').style.display = 'block';
-                document.querySelector('#menu').style.display = 'block';
-                document.querySelector('#menu').classList.remove('credits');
+            (el.onclick = function() {
+                socket.emit('deleteGame', gameId)
+                document.querySelector('#credits').style.display = 'none'
+                document.querySelector('#game-over').style.display = 'none'
+                document.querySelector('#main').style.display = 'block'
+                document.querySelector('#menu').style.display = 'block'
+                document.querySelector('#menu').classList.remove('credits')
             }),
-    );
+    )
 
-    document.querySelector('#start-solo-old-game-btn').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#solo-old-game-preview').style.display = 'block';
-    };
+    document.querySelector('#start-solo-game-btn').onclick = function() {
+        document.querySelector('#main').style.display = 'none'
+        document.querySelector('#solo-game-preview').style.display = 'block'
+    }
 
-    document.querySelector('#start-multi-old-game-btn').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#multi-old-game-preview').style.display = 'block';
-        createMultiplayerGame();
-    };
+    document.querySelector('#start-multi-game-btn').onclick = function() {
+        document.querySelector('#main').style.display = 'none'
+        document.querySelector('#multi-game-preview').style.display = 'block'
+        createMultiplayerGame()
+    }
 
     document.querySelectorAll('.play').forEach(button => {
-        button.onclick = function () {
-            document.querySelector('#solo-old-game-preview').style.display = 'none';
-            document.querySelector('#multi-old-game-preview').style.display = 'none';
-            document.querySelector('#menu').style.display = 'none';
-            startGame();
-        };
-    });
+        button.onclick = function() {
+            socket.emit('start', gameId);
+            // startGame()
+        }
+    })
 }
 
-document.querySelector('.restart').onclick = function () {
-    document.querySelector('#old-game-over').style.display = 'none';
-    startGame();
-};
+document.querySelector('.restart').onclick = function() {
+    document.querySelector('#game-over').style.display = 'none'
+    startGame()
+}
 
-document.querySelector('#ice').onclick = function () {
-    selectedCharacter = 'ice';
-    this.classList.add('button_active');
-    document.querySelector('#fire').classList.remove('button_active');
-    document.querySelectorAll('.fire').forEach(el => el.classList.remove('fire'));
-    player = createPlayer(Object.create(Vector.prototype));
-};
+document.querySelector('#ice').onclick = function() {
+    selectedCharacter = 'ice'
+    this.classList.add('button_active')
+    document.querySelector('#fire').classList.remove('button_active')
+    document.querySelectorAll('.fire').forEach(el => el.classList.remove('fire'))
+}
 
-document.querySelector('#fire').onclick = function () {
-    selectedCharacter = 'fire';
-    this.classList.add('button_active');
-    document.querySelector('#ice').classList.remove('button_active');
-    document.querySelectorAll('button').forEach(el => el.classList.add('fire'));
-    player = createPlayer(Object.create(Vector.prototype));
-};
+document.querySelector('#fire').onclick = function() {
+    selectedCharacter = 'fire'
+    this.classList.add('button_active')
+    document.querySelector('#ice').classList.remove('button_active')
+    document.querySelectorAll('button').forEach(el => el.classList.add('fire'))
+}
 
 document.querySelectorAll('.level_button').forEach(
     el =>
-        (el.onclick = function () {
+        (el.onclick = function() {
             document
                 .querySelectorAll('.level_button')
-                .forEach(el => el.classList.remove('button_active'));
-            this.classList.add('button_active');
-            level = parseInt(this.id);
+                .forEach(el => el.classList.remove('button_active'))
+            this.classList.add('button_active')
+            level = parseInt(this.id)
         }),
-);
+)
 
-document.querySelector('#show-name-input-btn').onclick = function () {
-    document.querySelector('#result-saving').style.display = 'block';
-    document.querySelector('#old-game-over').style.display = 'none';
-};
+document.querySelector('#show-name-input-btn').onclick = function() {
+    document.querySelector('#result-saving').style.display = 'block'
+    document.querySelector('#game-over').style.display = 'none'
+}
 
-document.querySelector('#save-result').onclick = function () {
-    const name = document.getElementById('user-name').value;
+document.querySelector('#save-result').onclick = function() {
+    const name = document.getElementById('user-name').value
     bestScore = {
         name: name,
         score: score,
         character: selectedCharacter,
-    };
-    localStorage.setItem('bestScore', JSON.stringify(bestScore));
-    document.querySelector('#result-saving').style.display = 'none';
-    document.querySelector('#old-game-over').style.display = 'block';
-    document.querySelector('.save_result_container').classList.add('hidden');
+    }
+    localStorage.setItem('bestScore', JSON.stringify(bestScore))
+    document.querySelector('#result-saving').style.display = 'none'
+    document.querySelector('#game-over').style.display = 'block'
+    document.querySelector('.save_result_container').classList.add('hidden')
     if (!bestScore.score)
         document.querySelector('.last_best_score').innerHTML =
-            'Рекорд: пока никто не сохранял. Стань первым!';
+            'Рекорд: пока никто не сохранял. Стань первым!'
     else {
         document.querySelector('.last_best_score').innerHTML =
             'Рекорд: ' +
             bestScore.score +
             ' очков. Игрока звали ' +
             (bestScore.name || 'никак') +
-            '.';
+            '.'
     }
-};
+}
 
-document.querySelector('#download-result').onclick = function () {
+document.querySelector('#download-result').onclick = function() {
     const downloadToFile = (content, filename, contentType) => {
-        const a = document.createElement('a');
-        const file = new Blob([content], {type: contentType});
+        const a = document.createElement('a')
+        const file = new Blob([content], { type: contentType })
 
-        a.href = URL.createObjectURL(file);
-        a.download = filename;
-        a.click();
+        a.href = URL.createObjectURL(file)
+        a.download = filename
+        a.click()
 
-        URL.revokeObjectURL(a.href);
-    };
+        URL.revokeObjectURL(a.href)
+    }
 
-    let text;
+    let text
     if (!bestScore.score) {
-        text = 'К сожалению, ещё никто не сохранял свой рекорд. Стань первым!';
+        text = 'К сожалению, ещё никто не сохранял свой рекорд. Стань первым!'
     } else {
         text =
             (bestScore.name ? bestScore.name : 'Ты') +
@@ -1095,104 +1161,134 @@ document.querySelector('#download-result').onclick = function () {
             bestScore.score +
             ' очков, играя за ' +
             (bestScore.character === 'ice' ? 'Лёд' : 'Огонь') +
-            '!';
+            '!'
     }
 
-    downloadToFile(text, 'Рекорд.txt', 'text/plain');
-};
+    downloadToFile(text, 'Рекорд.txt', 'text/plain')
+}
 
 /**
  * Начало игры
  */
 function startGame() {
-    player = createPlayer(Object.create(Vector.prototype));
-    document.querySelector('#old-game-over').style.display = 'none';
+    document.querySelector('#solo-game-preview').style.display = 'none'
+    document.querySelector('#multi-game-preview').style.display = 'none'
+    document.querySelector('#menu').style.display = 'none'
+
+    player = createPlayer(Object.create(Vector.prototype))
+    otherPlayers = otherPlayers.map(otherPlayer => createOtherPlayer(otherPlayer));
+    document.querySelector('#game-over').style.display = 'none'
     ground = {
         x: 0,
         elements: [],
-    };
+    }
     obstacles = {
         x: 0,
         elements: [],
-    };
-    player.reset();
-    stop = false;
-    score = 0;
+    }
+    player.reset()
+    stop = false
+    score = 0
 
-    ctx.font = '900 32px "Franklin Gothic Medium", sans-serif';
+    ctx.font = '900 32px "Franklin Gothic Medium", sans-serif'
 
-    ground.x = -frontForestWidth;
+    ground.x = -frontForestWidth
     for (let i = 0; i < 3; i++) {
-        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
-        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
+        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'))
+        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'))
         for (let i = 0; i < 2; i++) {
-            ground.elements.push(new Sprite());
+            ground.elements.push(new Sprite())
         }
     }
 
-    obstacles.x = -frontForestWidth;
+    obstacles.x = -frontForestWidth
     for (let i = 0; i < 3; i++) {
-        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'));
+        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'))
         for (let i = 0; i < 1; i++) {
-            obstacles.elements.push(new Sprite());
+            obstacles.elements.push(new Sprite())
         }
     }
 
-    background.reset();
-    animate();
+    background.reset()
+    animate()
 }
 
 /**
  * Конец игры
  */
 function gameOver() {
-    stop = true;
-    document.querySelector('#score').innerHTML = score;
-    document.querySelector('#old-game-over').style.display = 'block';
+    stop = true
+    document.querySelector('#score').innerHTML = score
+    document.querySelector('#game-over').style.display = 'block'
 
-    const saveResultDiv = document.querySelector('.save_result_container');
-    if (score > bestScore.score) saveResultDiv.classList.remove('hidden');
-    else saveResultDiv.classList.add('hidden');
+    const saveResultDiv = document.querySelector('.save_result_container')
+    if (score > bestScore.score) saveResultDiv.classList.remove('hidden')
+    else saveResultDiv.classList.add('hidden')
 }
 
 function initSocket() {
-    socket = io('http://localhost:3000', {autoConnect: false});
+    socket = io('http://localhost:3000', { autoConnect: false })
 
     socket.on('connect', () => {
-        console.log('Connected to WS server');
-        document.querySelector('#start-multi-game-btn').classList.remove('hidden');
-    });
+        console.log('Connected to WS server')
+        document.querySelector('#start-multi-game-btn').classList.remove('hidden')
+    })
 
     socket.on('createSuccess', () => {
         document.querySelector('.join-link').innerHTML =
-            'https://elemars.netlify.app/' + gameId;
-    });
+            'https://elemars.netlify.app/' + gameId
+    })
 
     socket.on('createFail', errMsg => {
-        alert('Не удалось создать игру! ', errMsg);
-    });
+        alert('Не удалось создать игру! ', errMsg)
+    })
 
-    socket.on('joinSuccess', players => {
-        document.querySelector('.players-num').innerHTML = players.length;
-    });
+    socket.on('joinSuccess', (data) => {
+        document.querySelector('.players-num').innerHTML = data.players.length
+        otherPlayers = data.players.filter(player => player.id !== clientId)
+        level = data.level
+        console.log(level)
+    })
 
     socket.on('joinFail', errMsg => {
-        alert('Не удалось подключится к игре! ', errMsg);
-    });
+        alert('Не удалось подключится к игре! ', errMsg)
+        Location.reload()
+    })
 
-    socket.connect();
+    socket.on('deleteSuccess', errMsg => {
+        console.log('Сессия игры удалена!')
+    })
+
+    socket.on('update', (data) => {
+        debugger;
+        otherPlayers.map(otherPlayer => {
+            if (otherPlayer.id === data.id) {
+                otherPlayer.x = data.x;
+                otherPlayer.y = data.y;
+            }
+        })
+    })
+
+    socket.on('start', () => {
+        startGame();
+    })
+
+    socket.connect()
 }
 
 function createMultiplayerGame() {
-    const gameId = 'example';
-    const clientId = '1';
-    socket.emit('create', gameId);
+    socket.emit('deleteGame', gameId)
+    gameId = 'example'
+    socket.emit('create', {
+        gameId: gameId,
+        level: level,
+    })
     socket.emit('join', {
         clientId: clientId,
         gameId: gameId,
         character: selectedCharacter,
-    });
+    })
 }
 
-assetLoader.downloadAll();
-initSocket();
+assetLoader.downloadAll()
+initSocket()

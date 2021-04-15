@@ -1,12 +1,17 @@
 <!DOCTYPE html>
-<html lang="RU">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Элемары</title>
-        <link rel="stylesheet" href="css/styles.css" type="text/css" media="screen" />
-    </head>
-
-    <body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+    <title>Элемары</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+</head>
+<body>
+    <div id="app">
         <div class="wrapper">
             <div id="menu">
                 <div id="progress">
@@ -29,8 +34,8 @@
                     <div>
                         <span>Выберите сложность:</span>
                         <button
-                            id="1lvl"
-                            class="button button_small level_button button_active"
+                                id="1lvl"
+                                class="button button_small level_button button_active"
                         >
                             Легко
                         </button>
@@ -43,7 +48,7 @@
                     </div>
 
                     <button id="start-solo-game-btn" class="button">Играть один</button>
-                    <button id="start-multi-game-btn" class="button">Создать игру</button>
+                    <button id="start-multi-game-btn" class="hidden button">Создать игру</button>
                     <p class="last_best_score"></p>
                     <button id="download-result" class="button">Скачать рекорд</button>
                 </div>
@@ -70,7 +75,8 @@
                 <p>Ваш браузер не поддерживает игру.</p>
                 <p>
                     Пожалуйста, обновите ваш браузер на, например
-                    <a href="https://www.google.com/chrome/">Google Chrome</a>, чтобы играть.
+                    <a href="https://www.google.com/chrome/">Google Chrome</a>, чтобы
+                    играть.
                 </p>
             </canvas>
 
@@ -87,12 +93,13 @@
             </div>
 
             <div id="result-saving" class="popup-container">
-                <label for="user-name"></label><input
+                <label for="user-name"></label
+                ><input
                     type="text"
                     id="user-name"
                     class="name-input"
                     placeholder="Кто играл?"
-                />
+            />
                 <button id="save-result" class="button button_centered">
                     Сохранить результат
                 </button>
@@ -125,9 +132,9 @@
                     <button class="button button_centered play">Начать!</button>
                 </div>
             </div>
-
         </div>
-        <script src="./js/socket.io.js"></script>
-        <script type="text/javascript" src="js/main.js"></script>
-    </body>
+    </div>
+
+    <script src="main.js"></script>
+</body>
 </html>

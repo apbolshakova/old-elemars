@@ -2,3 +2,5 @@
 *.log
 node_modules
 bin
+old-game
+/old-game

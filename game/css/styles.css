@@ -152,7 +152,7 @@ li {
     padding: 16px;
     z-index: 2;
     position: absolute;
-    margin: 250px 500px;
+    margin: 180px 500px;
     border-radius: 8px;
     width: calc(100% - 1000px);
 }
