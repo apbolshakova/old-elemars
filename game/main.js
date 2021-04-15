@@ -1236,7 +1236,7 @@ function initSocket() {
 
     socket.on('createSuccess', () => {
         document.querySelector('.join-link').innerHTML =
-            'https://elemars.netlify.app/' + gameId
+            'https://elemars.netlify.app/join/join'
     })
 
     socket.on('createFail', errMsg => {
