@@ -957,8 +957,6 @@ function updatePlayer() {
     player.update()
     player.draw()
 
-    socket.emit('update', {clientId, x: player.x, y: player.y});
-
     // Конец игры, если персонаж упал
     if (player.y + player.height >= canvas.height) {
         gameOver()
