@@ -3,6 +3,7 @@ import {Server, Socket} from 'socket.io';
 import {GameService} from './game.service';
 import {Logger} from '@nestjs/common';
 import {ButtonCode} from './enums/button-code';
+import {Obstacle, Player} from './interfaces/gameElement';
 
 @WebSocketGateway()
 export class GameGateway {
@@ -91,20 +92,12 @@ export class GameGateway {
     handleUpdating(
         client: Socket,
         data: {
-            clientId: string;
-            x: number;
-            y: number;
+            obstacles: Obstacle[];
+            players: Player[];
         },
     ) {
-        this.logger.log('update');
-        this.gameService.players.forEach(player => {
-            if (player.id === data.clientId) {
-                player.x = data.x;
-                player.y = data.y;
-            }
-        });
-
-        this.wss.emit('update', {id: data.clientId, x: data.x, y: data.y});
+        this.logger.log(data);
+        client.broadcast.emit('update', data);
     }
 
     @SubscribeMessage('start')

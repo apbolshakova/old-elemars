@@ -1031,8 +1031,6 @@ function updatePlayer() {
     player.update();
     player.draw();
 
-    socket.emit('update', {clientId, x: player.x, y: player.y});
-
     // Конец игры, если персонаж упал
     if (player.y + player.height >= canvas.height) {
         gameOver();
@@ -1062,6 +1060,11 @@ function animate() {
         updateObstacles();
         updatePlayer();
         updateOtherPlayers();
+
+        socket.emit('update', {
+            obstacles: obstacles,
+            players: [...otherPlayers, {...player, id: clientId}],
+        });
 
         // Отрисовка текущего счёта
         ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
