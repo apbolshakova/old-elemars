@@ -1,140 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-    <title>Элемары</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-    <script type="text/javascript" src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
-</head>
-<body>
-    <div id="app">
-        <div class="wrapper">
-            <div id="menu">
-                <div id="progress">
-                    <p id="percent">Загрузка: <span id="p"></span></p>
-                    <progress id="progress-bar" value="0"></progress>
-                    <span>(при загрузке дольше двух минут обновите страницу)</span>
-                </div>
-
-                <div id="main">
-                    <button class="button credits">Авторы</button>
-
-                    <div>
-                        <span>Выберите персонажа:</span>
-                        <button id="ice" class="button button_small button_active">
-                            Лёд
-                        </button>
-                        <button id="fire" class="button button_small">Огонь</button>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <link
+            rel="stylesheet"
+            href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css"
+            integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ"
+            crossorigin="anonymous"
+        />
+        <title>Элемары</title>
+        <link rel="stylesheet" href="css/styles.css" />
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script
+            type="text/javascript"
+            src="https://cdn.socket.io/socket.io-1.4.5.js"
+        ></script>
+    </head>
+    <body>
+        <div id="app">
+            <div class="wrapper">
+                <div id="menu">
+                    <div id="progress">
+                        <p id="percent">Загрузка: <span id="p"></span></p>
+                        <progress id="progress-bar" value="0"></progress>
+                        <span>(при загрузке дольше двух минут обновите страницу)</span>
                     </div>
 
-                    <div>
-                        <span>Выберите сложность:</span>
-                        <button
+                    <div id="main">
+                        <button class="button credits">Авторы</button>
+
+                        <div>
+                            <span>Выберите персонажа:</span>
+                            <button id="ice" class="button button_small button_active">
+                                Лёд
+                            </button>
+                            <button id="fire" class="button button_small">Огонь</button>
+                        </div>
+
+                        <div>
+                            <span>Выберите сложность:</span>
+                            <button
                                 id="1lvl"
                                 class="button button_small level_button button_active"
-                        >
-                            Легко
+                            >
+                                Легко
+                            </button>
+                            <button id="2lvl" class="button button_small level_button">
+                                Средне
+                            </button>
+                            <button id="3lvl" class="button button_small level_button">
+                                Сложно
+                            </button>
+                        </div>
+
+                        <button id="start-solo-game-btn" class="button">
+                            Играть один
                         </button>
-                        <button id="2lvl" class="button button_small level_button">
-                            Средне
+                        <button id="start-multi-game-btn" class="hidden button">
+                            Создать игру
                         </button>
-                        <button id="3lvl" class="button button_small level_button">
-                            Сложно
+                        <p class="last_best_score"></p>
+                        <button id="download-result" class="button">
+                            Скачать рекорд
                         </button>
                     </div>
 
-                    <button id="start-solo-game-btn" class="button">Играть один</button>
-                    <button id="start-multi-game-btn" class="hidden button">Создать игру</button>
-                    <p class="last_best_score"></p>
-                    <button id="download-result" class="button">Скачать рекорд</button>
+                    <div id="credits">
+                        <p>
+                            Разработка:
+                            <a target="_blank" href="https://github.com/julody">Julody</a>
+                        </p>
+                        <p>
+                            2D графика:
+                            <a target="_blank" href="https://vk.com/antercold"
+                                >Antercold</a
+                            >
+                        </p>
+                        <p>
+                            3D графика:
+                            <a target="_blank" href="https://vk.com/antercold">Pelmeow</a>
+                        </p>
+                        <br />
+                        <button class="button back">Назад</button>
+                    </div>
                 </div>
 
-                <div id="credits">
+                <canvas id="canvas" width="1920" height="1080">
+                    <p>Ваш браузер не поддерживает игру.</p>
                     <p>
-                        Разработка:
-                        <a target="_blank" href="https://github.com/julody">Julody</a>
+                        Пожалуйста, обновите ваш браузер на, например
+                        <a href="https://www.google.com/chrome/">Google Chrome</a>, чтобы
+                        играть.
                     </p>
-                    <p>
-                        2D графика:
-                        <a target="_blank" href="https://vk.com/antercold">Antercold</a>
-                    </p>
-                    <p>
-                        3D графика:
-                        <a target="_blank" href="https://vk.com/antercold">Pelmeow</a>
-                    </p>
-                    <br />
-                    <button class="button back">Назад</button>
+                </canvas>
+
+                <div id="game-over" class="popup-container">
+                    <p>Счёт: <span id="score"></span> очков!</p>
+                    <div class="save_result_container">
+                        <p>Это новый рекорд! Результат можно сохранить:</p>
+                        <button id="show-name-input-btn" class="button button_centered">
+                            Сохранить результат
+                        </button>
+                    </div>
+                    <button class="button button_centered restart">Начать заново</button>
+                    <button class="button button_centered back">Меню</button>
                 </div>
-            </div>
 
-            <canvas id="canvas" width="1920" height="1080">
-                <p>Ваш браузер не поддерживает игру.</p>
-                <p>
-                    Пожалуйста, обновите ваш браузер на, например
-                    <a href="https://www.google.com/chrome/">Google Chrome</a>, чтобы
-                    играть.
-                </p>
-            </canvas>
-
-            <div id="game-over" class="popup-container">
-                <p>Счёт: <span id="score"></span> очков!</p>
-                <div class="save_result_container">
-                    <p>Это новый рекорд! Результат можно сохранить:</p>
-                    <button id="show-name-input-btn" class="button button_centered">
+                <div id="result-saving" class="popup-container">
+                    <label for="user-name"></label
+                    ><input
+                        type="text"
+                        id="user-name"
+                        class="name-input"
+                        placeholder="Кто играл?"
+                    />
+                    <button id="save-result" class="button button_centered">
                         Сохранить результат
                     </button>
                 </div>
-                <button class="button button_centered restart">Начать заново</button>
-                <button class="button button_centered back">Меню</button>
-            </div>
 
-            <div id="result-saving" class="popup-container">
-                <label for="user-name"></label
-                ><input
-                    type="text"
-                    id="user-name"
-                    class="name-input"
-                    placeholder="Кто играл?"
-            />
-                <button id="save-result" class="button button_centered">
-                    Сохранить результат
-                </button>
-            </div>
-
-            <div id="solo-game-preview" class="popup-container">
-                <div class="instructions">
-                    <p>
-                        Как играть:<br /><br />
-                        W - прыжок<br /><br />
-                        Средняя и высокая сложность:<br />
-                        A - замедлиться<br />
-                        D - ускориться<br /><br />
-                    </p>
-                    <button class="button button_centered play">Понятно!</button>
+                <div id="solo-game-preview" class="popup-container">
+                    <div class="instructions">
+                        <p>
+                            Как играть:<br /><br />
+                            W - прыжок<br /><br />
+                            Средняя и высокая сложность:<br />
+                            A - замедлиться<br />
+                            D - ускориться<br /><br />
+                        </p>
+                        <button class="button button_centered play">Понятно!</button>
+                    </div>
                 </div>
-            </div>
 
-            <div id="multi-game-preview" class="popup-container">
-                <div class="instructions">
-                    <p>
-                        Как играть:<br /><br />
-                        W - прыжок<br /><br />
-                        Средняя и высокая сложность:<br />
-                        A - замедлиться<br />
-                        D - ускориться<br /><br />
-                    </p>
-                    <p>Пришли другу эту ссылку: <span class="join-link"></span></p>
-                    <p>Количество людей: <span class="players-num"></span></p>
-                    <button class="button button_centered play">Начать!</button>
+                <div id="multi-game-preview" class="popup-container">
+                    <div class="instructions">
+                        <p>
+                            Как играть:<br /><br />
+                            W - прыжок<br /><br />
+                            Средняя и высокая сложность:<br />
+                            A - замедлиться<br />
+                            D - ускориться<br /><br />
+                        </p>
+                        <p>Пришли другу эту ссылку: <span class="join-link"></span></p>
+                        <p>Количество людей: <span class="players-num"></span></p>
+                        <button class="button button_centered play">Начать!</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="main.js"></script>
-</body>
+        <script src="host.js"></script>
+    </body>
 </html>

@@ -40,7 +40,7 @@ const frontForestWidth = 4674;
 // Сокет для мультиплеера
 let socket = null;
 let gameId = null;
-const clientId = '1';
+const clientId = '2';
 
 /**
  * Получить число в заданном диапазоне
@@ -56,40 +56,40 @@ function rand(low, high) {
  */
 const assetLoader = (function () {
     this.imgs = {
-        bg: 'img/map/sky.jpg',
-        bg2: 'img/map/sky-2.jpg',
-        bg3: 'img/map/sky-3.jpg',
+        bg: './../img/map/sky.jpg',
+        bg2: './../img/map/sky-2.jpg',
+        bg3: './../img/map/sky-3.jpg',
 
-        iceRun: 'img/ice/ice_run.png',
-        iceJump: 'img/ice/ice_jump.png',
+        iceRun: './../img/ice/ice_run.png',
+        iceJump: './../img/ice/ice_jump.png',
 
-        fireRun: 'img/fire/fire_run.png',
-        fireJump: 'img/fire/fire_jump.png',
+        fireRun: './../img/fire/fire_run.png',
+        fireJump: './../img/fire/fire_jump.png',
 
-        cloud1: 'img/map/clouds/cloud-1.png',
-        cloud2: 'img/map/clouds/cloud-2.png',
-        cloud3: 'img/map/clouds/cloud-3.png',
-        cloud4: 'img/map/clouds/cloud-4.png',
+        cloud1: './../img/map/clouds/cloud-1.png',
+        cloud2: './../img/map/clouds/cloud-2.png',
+        cloud3: './../img/map/clouds/cloud-3.png',
+        cloud4: './../img/map/clouds/cloud-4.png',
 
-        tree1: 'img/map/forest/tree-1.png',
-        tree2: 'img/map/forest/tree-2.png',
-        tree3: 'img/map/forest/tree-3.png',
+        tree1: './../img/map/forest/tree-1.png',
+        tree2: './../img/map/forest/tree-2.png',
+        tree3: './../img/map/forest/tree-3.png',
 
-        bush1: 'img/map/forest/bush-1.png',
-        bush2: 'img/map/forest/bush-2.png',
-        bush3: 'img/map/forest/bush-3.png',
-        bush4: 'img/map/forest/bush-4.png',
-        bush5: 'img/map/forest/bush-5.png',
-        bush6: 'img/map/forest/bush-6.png',
+        bush1: './../img/map/forest/bush-1.png',
+        bush2: './../img/map/forest/bush-2.png',
+        bush3: './../img/map/forest/bush-3.png',
+        bush4: './../img/map/forest/bush-4.png',
+        bush5: './../img/map/forest/bush-5.png',
+        bush6: './../img/map/forest/bush-6.png',
 
-        grass: 'img/map/ground.png',
-        water: 'img/map/obstacles/water.png',
+        grass: './../img/map/ground.png',
+        water: './../img/map/obstacles/water.png',
 
-        smallPlatform: 'img/map/obstacles/small-platform.png',
-        bigPlatform: 'img/map/obstacles/big-platform.png',
-        log: 'img/map/obstacles/log.png',
-        brokenTree: 'img/map/obstacles/broken-tree.png',
-        meteorite: 'img/map/obstacles/meteorite.png',
+        smallPlatform: './../img/map/obstacles/small-platform.png',
+        bigPlatform: './../img/map/obstacles/big-platform.png',
+        log: './../img/map/obstacles/log.png',
+        brokenTree: './../img/map/obstacles/broken-tree.png',
+        meteorite: './../img/map/obstacles/meteorite.png',
     };
 
     this.sounds = {};
@@ -684,31 +684,8 @@ function createPlayer(player) {
  * Объект персонажа
  */
 function createOtherPlayer(otherPlayer) {
-    let jumpCounter; // Сколько кадров будет продолжаться движение вверх при прыжке
-
     otherPlayer.width = 500;
     otherPlayer.height = 458;
-    otherPlayer.pressedButtons = {
-        KeyW: false,
-        KeyA: false,
-        KeyD: false,
-    };
-    otherPlayer.speed = 5 + 5 * level;
-    // Позиция
-    otherPlayer.x = 0;
-    otherPlayer.y = 0;
-    // Направление
-    otherPlayer.dx = 0;
-    otherPlayer.dy = 0;
-
-    // Параметры прыжка
-    if (level === 1) {
-        otherPlayer.gravity = 0.4;
-        otherPlayer.jumpDy = -20;
-    } else {
-        otherPlayer.gravity = 1;
-        otherPlayer.jumpDy = -30;
-    }
 
     // Spritesheets
     if (otherPlayer.character === 'ice') {
@@ -739,47 +716,11 @@ function createOtherPlayer(otherPlayer) {
     otherPlayer.jumpAnim = new Animation(otherPlayer.jumpSheet, 2, 0, 26);
     otherPlayer.anim = otherPlayer.walkAnim;
 
-    otherPlayer.advance = function () {
-        this.x += this.dx;
-        this.y += this.dy;
-    };
     /**
      * Отрисовка персонажа
      */
     otherPlayer.draw = function () {
         otherPlayer.anim.draw(otherPlayer.x, otherPlayer.y + 70);
-    };
-
-    otherPlayer.update = function () {
-        if (level > 1 && otherPlayer.pressedButtons['KeyD']) otherPlayer.dx = 10;
-        else if (level > 1 && otherPlayer.pressedButtons['KeyA']) otherPlayer.dx = -10;
-        else otherPlayer.dx = 0;
-
-        // Прыгнуть, если нажали на W и персонаж не прыгает
-        if (
-            otherPlayer.pressedButtons['KeyW'] &&
-            otherPlayer.dy === 0 &&
-            !otherPlayer.isJumping
-        ) {
-            otherPlayer.isJumping = true;
-            otherPlayer.dy = otherPlayer.jumpDy;
-        }
-        if (otherPlayer.isJumping) {
-            otherPlayer.dy += otherPlayer.gravity;
-        }
-
-        jumpCounter = Math.max(jumpCounter - 1, 0);
-
-        this.advance();
-
-        // Смена анимации
-        if (otherPlayer.isJumping) {
-            otherPlayer.anim = otherPlayer.jumpAnim;
-        } else {
-            otherPlayer.anim = otherPlayer.walkAnim;
-        }
-
-        otherPlayer.anim.update();
     };
 
     return otherPlayer;
@@ -835,7 +776,6 @@ function updateGround() {
     const groundElementsPerScreen = 4; // 2 земли и 2 платформы
     // Ground - элементы по которым элемар может бегать: x, elements: Array[]{x, y, type}
     player.isJumping = true;
-    otherPlayers.map(otherPlayer => (otherPlayer.isJumping = true));
     let xCoordWithOffset;
 
     ground.x -= player.speed;
@@ -871,50 +811,35 @@ function updateGround() {
             player.y = ground.elements[i].y - player.height;
             player.dy = 0;
         }
+    }
 
-        otherPlayers.map(otherPlayer => {
-            if (
-                otherPlayer.dy >= 0 &&
-                Math.abs(otherPlayer.y + otherPlayer.height - ground.elements[i].y) <
-                    20 &&
-                xCoordWithOffset <= otherPlayer.x + otherPlayer.width / 2 &&
-                otherPlayer.x + otherPlayer.width / 2 <=
-                    xCoordWithOffset + ground.elements[i].width
-            ) {
-                otherPlayer.isJumping = false;
-                otherPlayer.y = ground.elements[i].y - otherPlayer.height;
-                otherPlayer.dy = 0;
-            }
-        });
-
-        if (ground.x + frontForestWidth <= 0) {
-            ground.x = 0;
-            ground.elements = ground.elements.slice(groundElementsPerScreen);
-            ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
-            ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
-            for (let i = 0; i < 2; i++) {
-                let isBig = rand(0, 1);
-                if (isBig) {
-                    ground.elements.push(
-                        new Sprite(
-                            rand(0, frontForestWidth - 954) + frontForestWidth * i,
-                            300 * rand(1, 2) - 100,
-                            954,
-                            412,
-                            'bigPlatform',
-                        ),
-                    );
-                } else {
-                    ground.elements.push(
-                        new Sprite(
-                            rand(0, frontForestWidth - 493) + frontForestWidth * i,
-                            300 * rand(1, 2) - 100,
-                            493,
-                            353,
-                            'smallPlatform',
-                        ),
-                    );
-                }
+    if (ground.x + frontForestWidth <= 0) {
+        ground.x = 0;
+        ground.elements = ground.elements.slice(groundElementsPerScreen);
+        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
+        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
+        for (let i = 0; i < 2; i++) {
+            let isBig = rand(0, 1);
+            if (isBig) {
+                ground.elements.push(
+                    new Sprite(
+                        rand(0, frontForestWidth - 954) + frontForestWidth * i,
+                        300 * rand(1, 2) - 100,
+                        954,
+                        412,
+                        'bigPlatform',
+                    ),
+                );
+            } else {
+                ground.elements.push(
+                    new Sprite(
+                        rand(0, frontForestWidth - 493) + frontForestWidth * i,
+                        300 * rand(1, 2) - 100,
+                        493,
+                        353,
+                        'smallPlatform',
+                    ),
+                );
             }
         }
     }
@@ -928,16 +853,8 @@ function updateObstacles() {
     let xCoordWithOffset;
     // Препятствия - элементы, при столкновении с которыми конец игры: x, elements: Array[]<{x, y, type, dx, dy}>
 
-    obstacles.x -= player.speed;
     // Анимация препятствий
     for (let i = 0; i < obstacles.elements.length; i++) {
-        if (obstacles.elements[i].speedX) {
-            obstacles.elements[i].x += obstacles.elements[i].speedX;
-        }
-        if (obstacles.elements[i].speedY) {
-            obstacles.elements[i].y += obstacles.elements[i].speedY;
-        }
-
         switch (Math.floor(i / obstacleElementsPerScreen)) {
             case 0:
                 obstacles.elements[i].x += -1 * frontForestWidth + obstacles.x;
@@ -970,65 +887,13 @@ function updateObstacles() {
             gameOver();
         }
     }
-
-    if (obstacles.x + frontForestWidth <= 0) {
-        obstacles.x = 0;
-        obstacles.elements = obstacles.elements.slice(obstacleElementsPerScreen);
-        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'));
-        for (let i = 0; i < obstacleElementsPerScreen - 1; i++) {
-            let type = rand(0, 2);
-            switch (type) {
-                case 0:
-                    obstacles.elements.push(
-                        new Sprite(
-                            rand(500, frontForestWidth - 619 - 834) +
-                                frontForestWidth * i,
-                            560,
-                            619,
-                            452,
-                            'brokenTree',
-                        ),
-                    );
-                    break;
-                case 1:
-                    obstacles.elements.push(
-                        new Sprite(
-                            rand(500, frontForestWidth - 492 - 834) +
-                                frontForestWidth * i,
-                            680,
-                            492,
-                            394,
-                            'log',
-                        ),
-                    );
-                    break;
-                default:
-                    if (level > 2) {
-                        obstacles.elements.push(
-                            new Sprite(
-                                rand(2000, frontForestWidth - 227 - 834) +
-                                    frontForestWidth * i,
-                                -3400,
-                                227,
-                                614,
-                                'meteorite',
-                                -5,
-                                15,
-                            ),
-                        );
-                    } else {
-                        obstacles.elements.push(new Sprite());
-                    }
-            }
-        }
-    }
 }
 
 /**
  * Обновление состояния персонажа
  */
 function updatePlayer() {
-    player.update();
+    player.anim.update();
     player.draw();
 
     // Конец игры, если персонаж упал
@@ -1039,7 +904,7 @@ function updatePlayer() {
 
 function updateOtherPlayers() {
     otherPlayers.map(otherPlayer => {
-        otherPlayer.update();
+        otherPlayer.anim.update();
         otherPlayer.draw();
     });
 }
@@ -1050,21 +915,13 @@ function updateOtherPlayers() {
 function animate() {
     if (!stop) {
         score++;
-        requestAnimFrame(animate);
+        //requestAnimFrame(animate);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         background.draw();
 
         // Обновление состояния элементов игры
         updateGround();
-        updateObstacles();
-        updatePlayer();
-        updateOtherPlayers();
-
-        socket.emit('update', {
-            obstacles: obstacles,
-            players: [...otherPlayers, {...player, id: clientId}],
-        });
 
         // Отрисовка текущего счёта
         ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
@@ -1083,13 +940,19 @@ const KEY_STATUS = {
 document.onkeydown = function (e) {
     if (KEY_STATUS.hasOwnProperty(e.code)) {
         e.preventDefault();
-        KEY_STATUS[e.code] = true;
+        socket.emit('clientPressButton', {
+            clientId: clientId,
+            pressedButton: e.code,
+        });
     }
 };
 document.onkeyup = function (e) {
     if (KEY_STATUS.hasOwnProperty(e.code)) {
         e.preventDefault();
-        KEY_STATUS[e.code] = false;
+        socket.emit('clientReleaseButton', {
+            clientId: clientId,
+            releasedButton: e.code,
+        });
     }
 };
 
@@ -1138,23 +1001,11 @@ function mainMenu() {
             }),
     );
 
-    document.querySelector('#start-solo-game-btn').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#solo-game-preview').style.display = 'block';
-    };
-
-    document.querySelector('#start-multi-game-btn').onclick = function () {
+    document.querySelector('#join-game-btn').onclick = function () {
         document.querySelector('#main').style.display = 'none';
         document.querySelector('#multi-game-preview').style.display = 'block';
-        createMultiplayerGame();
+        joinMultiplayerGame();
     };
-
-    document.querySelectorAll('.play').forEach(button => {
-        button.onclick = function () {
-            socket.emit('start', gameId);
-            // startGame()
-        };
-    });
 }
 
 document.querySelector('.restart').onclick = function () {
@@ -1248,7 +1099,6 @@ document.querySelector('#download-result').onclick = function () {
  * Начало игры
  */
 function startGame() {
-    document.querySelector('#solo-game-preview').style.display = 'none';
     document.querySelector('#multi-game-preview').style.display = 'none';
     document.querySelector('#menu').style.display = 'none';
 
@@ -1259,11 +1109,6 @@ function startGame() {
         x: 0,
         elements: [],
     };
-    obstacles = {
-        x: 0,
-        elements: [],
-    };
-    player.reset();
     stop = false;
     score = 0;
 
@@ -1278,16 +1123,7 @@ function startGame() {
         }
     }
 
-    obstacles.x = -frontForestWidth;
-    for (let i = 0; i < 3; i++) {
-        obstacles.elements.push(new Sprite(3840, 860, 834, 220, 'water'));
-        for (let i = 0; i < 1; i++) {
-            obstacles.elements.push(new Sprite());
-        }
-    }
-
     background.reset();
-    animate();
 }
 
 /**
@@ -1307,24 +1143,13 @@ function initSocket() {
     socket = io('http://localhost:3000', {autoConnect: false});
 
     socket.on('connect', () => {
-        console.log('Connected to WS server');
-        document.querySelector('#start-multi-game-btn').classList.remove('hidden');
-    });
-
-    socket.on('createSuccess', () => {
-        document.querySelector('.join-link').innerHTML =
-            'https://elemars.netlify.app/join/join';
-    });
-
-    socket.on('createFail', errMsg => {
-        alert('Не удалось создать игру! ', errMsg);
+        document.querySelector('#join-game-btn').classList.remove('hidden');
     });
 
     socket.on('joinSuccess', data => {
         document.querySelector('.players-num').innerHTML = data.players.length;
         otherPlayers = data.players.filter(player => player.id !== clientId);
         level = data.level;
-        console.log(level);
     });
 
     socket.on('joinFail', errMsg => {
@@ -1332,40 +1157,57 @@ function initSocket() {
         Location.reload();
     });
 
-    socket.on('deleteSuccess', errMsg => {
+    socket.on('deleteSuccess', () => {
         console.log('Сессия игры удалена!');
+    });
+
+    socket.on('update', data => {
+        data.players
+            .filter(player => player.id === clientId)
+            .map(curPlayer => {
+                player.x = curPlayer.x;
+                player.y = curPlayer.y;
+                player.isJumping = curPlayer.isJumping;
+            });
+        otherPlayers.forEach(oPlayer =>
+            data.players
+                .filter(curPlayer => oPlayer.id === curPlayer.id)
+                .map(curPlayer => {
+                    oPlayer.x = curPlayer.x;
+                    oPlayer.y = curPlayer.y;
+                    oPlayer.isJumping = curPlayer.isJumping;
+                }),
+        );
+
+        obstacles.x = data.obstacles.x;
+        obstacles.elements = [];
+        data.obstacles.elements.map(obstacle =>
+            obstacles.elements.push(
+                new Sprite(
+                    obstacle.x,
+                    obstacle.y,
+                    obstacle.width,
+                    obstacle.height,
+                    obstacle.type,
+                ),
+            ),
+        );
+        animate();
+        updateObstacles();
+        updateOtherPlayers();
+        updatePlayer();
     });
 
     socket.on('start', () => {
         startGame();
     });
 
-    socket.on('clientPressButton', data => {
-        otherPlayers.map(otherPlayer => {
-            if (otherPlayer.id === data.clientId) {
-                otherPlayer.pressedButtons[data.pressedButton] = true;
-            }
-        });
-    });
-
-    socket.on('clientReleaseButton', data => {
-        otherPlayers.map(otherPlayer => {
-            if (otherPlayer.id === data.clientId) {
-                otherPlayer.pressedButtons[data.releasedButton] = false;
-            }
-        });
-    });
-
     socket.connect();
 }
 
-function createMultiplayerGame() {
-    socket.emit('deleteGame', gameId);
+function joinMultiplayerGame() {
     gameId = 'example';
-    socket.emit('create', {
-        gameId: gameId,
-        level: level,
-    });
+    const clientId = '2';
     socket.emit('join', {
         clientId: clientId,
         gameId: gameId,

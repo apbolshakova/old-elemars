@@ -71,11 +71,6 @@ export class GameGateway {
             players: this.gameService.players,
             level: this.gameService.level,
         });
-        this.wss.emit('update', {
-            id: data.clientId,
-            x: newPlayer.x,
-            y: newPlayer.y,
-        });
     }
 
     @SubscribeMessage('deleteGame')
@@ -96,7 +91,6 @@ export class GameGateway {
             players: Player[];
         },
     ) {
-        this.logger.log(data);
         client.broadcast.emit('update', data);
     }
 
