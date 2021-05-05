@@ -1338,7 +1338,7 @@ function gameOver() {
 }
 
 function initSocket() {
-    socket = io('http://localhost:3000', {autoConnect: false});
+    socket = io('https://elemars.herokuapp.com/', {autoConnect: false});
 
     socket.on('connect', () => {
         document.querySelector('#start-multi-game-btn').classList.remove('hidden');
