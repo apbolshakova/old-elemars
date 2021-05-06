@@ -1,3 +1,5 @@
+import {PlayerStatus} from '../enums/player-status';
+
 export interface GameElement {
     x: number;
     y: number;
@@ -8,7 +10,7 @@ export interface GameElement {
 export interface Player extends GameElement {
     id: string;
     character: string;
-    isJumping?: true;
+    status?: PlayerStatus;
 }
 
 export interface Obstacle extends GameElement {

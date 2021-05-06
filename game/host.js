@@ -18,6 +18,12 @@ let level = 1; // Выбранный уровень сложности
 let player; // Текущий персонаж
 let otherPlayers = []; // Персонажи других игроков
 
+const PLAYER_STATUSES = {
+    running: 'running',
+    jumping: 'jumping',
+    dead: 'dead',
+};
+
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
 if (!bestScore) bestScore = {score: 0};
 if (!bestScore.score)
@@ -590,6 +596,7 @@ function createPlayer(player) {
     player.height = 458;
     player.speed = 5 + 5 * level;
     player.dy = 0;
+    player.status = PLAYER_STATUSES['jumping'];
 
     // Параметры прыжка
     if (level === 1) {
@@ -640,11 +647,18 @@ function createPlayer(player) {
         else player.dx = 0;
 
         // Прыгнуть, если нажали на W и персонаж не прыгает
-        if (KEY_STATUS['KeyW'] && player.dy === 0 && !player.isJumping) {
-            player.isJumping = true;
+        if (
+            KEY_STATUS['KeyW'] &&
+            player.dy === 0 &&
+            player.status !== PLAYER_STATUSES['jumping']
+        ) {
+            player.status = PLAYER_STATUSES['jumping'];
             player.dy = player.jumpDy;
         }
-        if (player.isJumping) {
+        if (
+            player.status === PLAYER_STATUSES['jumping'] ||
+            player.status === PLAYER_STATUSES['dead']
+        ) {
             player.dy += player.gravity;
         }
 
@@ -653,8 +667,10 @@ function createPlayer(player) {
         this.advance();
 
         // Смена анимации
-        if (player.isJumping) {
+        if (player.status === PLAYER_STATUSES['jumping']) {
             player.anim = player.jumpAnim;
+        } else if (player.status === PLAYER_STATUSES['dead']) {
+            player.anim = player.deathAnim;
         } else {
             player.anim = player.walkAnim;
         }
@@ -694,6 +710,7 @@ function createOtherPlayer(otherPlayer) {
         KeyD: false,
     };
     otherPlayer.speed = 5 + 5 * level;
+    otherPlayer.status = PLAYER_STATUSES['jumping'];
     // Позиция
     otherPlayer.x = 0;
     otherPlayer.y = 0;
@@ -759,12 +776,15 @@ function createOtherPlayer(otherPlayer) {
         if (
             otherPlayer.pressedButtons['KeyW'] &&
             otherPlayer.dy === 0 &&
-            !otherPlayer.isJumping
+            otherPlayer.status !== PLAYER_STATUSES['jumping']
         ) {
-            otherPlayer.isJumping = true;
+            otherPlayer.status = PLAYER_STATUSES['jumping'];
             otherPlayer.dy = otherPlayer.jumpDy;
         }
-        if (otherPlayer.isJumping) {
+        if (
+            otherPlayer.status === PLAYER_STATUSES['jumping'] ||
+            otherPlayer.status === PLAYER_STATUSES['dead']
+        ) {
             otherPlayer.dy += otherPlayer.gravity;
         }
 
@@ -773,8 +793,10 @@ function createOtherPlayer(otherPlayer) {
         this.advance();
 
         // Смена анимации
-        if (otherPlayer.isJumping) {
+        if (otherPlayer.status === PLAYER_STATUSES['jumping']) {
             otherPlayer.anim = otherPlayer.jumpAnim;
+        } else if (otherPlayer.status === PLAYER_STATUSES['dead']) {
+            otherPlayer.anim = otherPlayer.deathAnim;
         } else {
             otherPlayer.anim = otherPlayer.walkAnim;
         }
@@ -834,8 +856,16 @@ Sprite.prototype = Object.create(Vector.prototype);
 function updateGround() {
     const groundElementsPerScreen = 4; // 2 земли и 2 платформы
     // Ground - элементы по которым элемар может бегать: x, elements: Array[]{x, y, type}
-    player.isJumping = true;
-    otherPlayers.map(otherPlayer => (otherPlayer.isJumping = true));
+    if (player.status !== PLAYER_STATUSES['dead']) {
+        player.status = PLAYER_STATUSES['jumping'];
+    }
+
+    otherPlayers.map(otherPlayer => {
+        if (otherPlayer.status !== PLAYER_STATUSES['dead']) {
+            otherPlayer.status = PLAYER_STATUSES['jumping'];
+        }
+    });
+
     let xCoordWithOffset;
 
     ground.x -= player.speed;
@@ -867,7 +897,9 @@ function updateGround() {
             xCoordWithOffset <= player.x + player.width / 2 &&
             player.x + player.width / 2 <= xCoordWithOffset + ground.elements[i].width
         ) {
-            player.isJumping = false;
+            if (player.status !== PLAYER_STATUSES['dead']) {
+                player.status = PLAYER_STATUSES['running'];
+            }
             player.y = ground.elements[i].y - player.height;
             player.dy = 0;
         }
@@ -881,7 +913,9 @@ function updateGround() {
                 otherPlayer.x + otherPlayer.width / 2 <=
                     xCoordWithOffset + ground.elements[i].width
             ) {
-                otherPlayer.isJumping = false;
+                if (otherPlayer.status !== PLAYER_STATUSES['dead']) {
+                    otherPlayer.status = PLAYER_STATUSES['running'];
+                }
                 otherPlayer.y = ground.elements[i].y - otherPlayer.height;
                 otherPlayer.dy = 0;
             }
@@ -1079,17 +1113,17 @@ function animate() {
                 y: player.y,
                 width: player.width,
                 height: player.height,
-                isJumping: true,
+                status: player.status,
             },
         ].concat(
-            otherPlayers.map(({id, character, x, y, width, height, isJumping}) => ({
+            otherPlayers.map(({id, character, x, y, width, height, status}) => ({
                 id,
                 character,
                 x,
                 y,
                 width,
                 height,
-                isJumping,
+                status,
             })),
         );
 
