@@ -18,6 +18,12 @@ let level = 1; // Выбранный уровень сложности
 let player; // Текущий персонаж
 let otherPlayers = []; // Персонажи других игроков
 
+const PLAYER_STATUSES = {
+    running: 'running',
+    jumping: 'jumping',
+    dead: 'dead',
+};
+
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
 if (!bestScore) bestScore = {score: 0};
 if (!bestScore.score)
@@ -62,9 +68,11 @@ const assetLoader = (function () {
 
         iceRun: './../img/ice/ice_run.png',
         iceJump: './../img/ice/ice_jump.png',
+        iceDeath: './../img/ice/ice_death.png',
 
         fireRun: './../img/fire/fire_run.png',
         fireJump: './../img/fire/fire_jump.png',
+        fireDeath: './../img/fire/fire_death.png',
 
         cloud1: './../img/map/clouds/cloud-1.png',
         cloud2: './../img/map/clouds/cloud-2.png',
@@ -233,8 +241,9 @@ function SpriteSheet(path, frameWidth, frameHeight) {
  * @param {number} frameSpeed - Количество кадров, через которое нужно сменить кадр анимации на следующий
  * @param {number} startFrame - Номер кадра начала анимации в спрайте
  * @param {number} endFrame - Repeat the animation once completed.
+ * @param {boolean} playOnce - Проиграть анимацию один раз и остаться на последнем кадре
  */
-function Animation(spritesheet, frameSpeed, startFrame, endFrame) {
+function Animation(spritesheet, frameSpeed, startFrame, endFrame, playOnce = false) {
     const animationSequence = []; // Массив кадров для анимации
     let currentFrame = 0; // Текущий кадр анимации
     let counter = 0; // Переменная для правильного времени смены кадра анимации
@@ -248,8 +257,10 @@ function Animation(spritesheet, frameSpeed, startFrame, endFrame) {
      */
     this.update = function () {
         // Сменить номер текущего кадра, если наступил нужный момент
-        if (counter === frameSpeed - 1)
-            currentFrame = (currentFrame + 1) % animationSequence.length;
+        if (counter === frameSpeed - 1) {
+            if (!playOnce || currentFrame !== endFrame)
+                currentFrame = (currentFrame + 1) % animationSequence.length;
+        }
 
         // Установка следующего момента, когда нужно менять кадр
         counter = (counter + 1) % frameSpeed;
@@ -602,7 +613,7 @@ function createPlayer(player) {
 
     // Spritesheets
     if (selectedCharacter === 'ice') {
-        player.walkSheet = new SpriteSheet(
+        player.runSheet = new SpriteSheet(
             assetLoader.imgs.iceRun.src,
             player.width,
             player.height,
@@ -612,9 +623,14 @@ function createPlayer(player) {
             player.width,
             player.height,
         );
+        player.deathSheet = new SpriteSheet(
+            assetLoader.imgs.iceDeath.src,
+            player.width,
+            player.height,
+        );
     }
     if (selectedCharacter === 'fire') {
-        player.walkSheet = new SpriteSheet(
+        player.runSheet = new SpriteSheet(
             assetLoader.imgs.fireRun.src,
             player.width,
             player.height,
@@ -624,10 +640,16 @@ function createPlayer(player) {
             player.width,
             player.height,
         );
+        player.deathSheet = new SpriteSheet(
+            assetLoader.imgs.fireDeath.src,
+            player.width,
+            player.height,
+        );
     }
-    player.walkAnim = new Animation(player.walkSheet, 2, 0, 26);
+    player.runAnim = new Animation(player.runSheet, 2, 0, 26);
     player.jumpAnim = new Animation(player.jumpSheet, 2, 0, 26);
-    player.anim = player.walkAnim;
+    player.deathAnim = new Animation(player.deathSheet, 1, 0, 24);
+    player.anim = player.runAnim;
 
     Vector.call(player, 0, 0, 0, player.dy);
 
@@ -635,28 +657,13 @@ function createPlayer(player) {
      * Обновление данных о персонаже и перерисовка спрайта
      */
     player.update = function () {
-        if (level > 1 && KEY_STATUS['KeyD']) player.dx = 10;
-        else if (level > 1 && KEY_STATUS['KeyA']) player.dx = -10;
-        else player.dx = 0;
-
-        // Прыгнуть, если нажали на W и персонаж не прыгает
-        if (KEY_STATUS['KeyW'] && player.dy === 0 && !player.isJumping) {
-            player.isJumping = true;
-            player.dy = player.jumpDy;
-        }
-        if (player.isJumping) {
-            player.dy += player.gravity;
-        }
-
-        jumpCounter = Math.max(jumpCounter - 1, 0);
-
-        this.advance();
-
         // Смена анимации
-        if (player.isJumping) {
+        if (player.status === PLAYER_STATUSES['jumping']) {
             player.anim = player.jumpAnim;
+        } else if (player.status === PLAYER_STATUSES['dead']) {
+            player.anim = player.deathAnim;
         } else {
-            player.anim = player.walkAnim;
+            player.anim = player.runAnim;
         }
 
         player.anim.update();
@@ -689,7 +696,7 @@ function createOtherPlayer(otherPlayer) {
 
     // Spritesheets
     if (otherPlayer.character === 'ice') {
-        otherPlayer.walkSheet = new SpriteSheet(
+        otherPlayer.runSheet = new SpriteSheet(
             assetLoader.imgs.iceRun.src,
             otherPlayer.width,
             otherPlayer.height,
@@ -699,9 +706,14 @@ function createOtherPlayer(otherPlayer) {
             otherPlayer.width,
             otherPlayer.height,
         );
+        otherPlayer.deathSheet = new SpriteSheet(
+            assetLoader.imgs.iceDeath.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        );
     }
     if (otherPlayer.character === 'fire') {
-        otherPlayer.walkSheet = new SpriteSheet(
+        otherPlayer.runSheet = new SpriteSheet(
             assetLoader.imgs.fireRun.src,
             otherPlayer.width,
             otherPlayer.height,
@@ -711,10 +723,32 @@ function createOtherPlayer(otherPlayer) {
             otherPlayer.width,
             otherPlayer.height,
         );
+        otherPlayer.deathSheet = new SpriteSheet(
+            assetLoader.imgs.fireDeath.src,
+            otherPlayer.width,
+            otherPlayer.height,
+        );
     }
-    otherPlayer.walkAnim = new Animation(otherPlayer.walkSheet, 2, 0, 26);
+    otherPlayer.runAnim = new Animation(otherPlayer.runSheet, 2, 0, 26);
     otherPlayer.jumpAnim = new Animation(otherPlayer.jumpSheet, 2, 0, 26);
-    otherPlayer.anim = otherPlayer.walkAnim;
+    otherPlayer.deathAnim = new Animation(otherPlayer.deathSheet, 2, 0, 24, true);
+    otherPlayer.anim = otherPlayer.runAnim;
+
+    /**
+     * Обновление данных о персонаже и перерисовка спрайта
+     */
+    otherPlayer.update = function () {
+        // Смена анимации
+        if (otherPlayer.status === PLAYER_STATUSES['jumping']) {
+            otherPlayer.anim = otherPlayer.jumpAnim;
+        } else if (otherPlayer.status === PLAYER_STATUSES['dead']) {
+            otherPlayer.anim = otherPlayer.deathAnim;
+        } else {
+            otherPlayer.anim = otherPlayer.runAnim;
+        }
+
+        otherPlayer.anim.update();
+    };
 
     /**
      * Отрисовка персонажа
@@ -775,7 +809,6 @@ Sprite.prototype = Object.create(Vector.prototype);
 function updateGround() {
     const groundElementsPerScreen = 4; // 2 земли и 2 платформы
     // Ground - элементы по которым элемар может бегать: x, elements: Array[]{x, y, type}
-    player.isJumping = true;
     let xCoordWithOffset;
 
     ground.x -= player.speed;
@@ -798,18 +831,6 @@ function updateGround() {
                 xCoordWithOffset = ground.elements[i].x;
                 ground.elements[i].draw();
                 ground.elements[i].x -= frontForestWidth + ground.x;
-        }
-
-        // Обработка приземления игрока на платформу
-        if (
-            player.dy >= 0 &&
-            Math.abs(player.y + player.height - ground.elements[i].y) < 20 &&
-            xCoordWithOffset <= player.x + player.width / 2 &&
-            player.x + player.width / 2 <= xCoordWithOffset + ground.elements[i].width
-        ) {
-            player.isJumping = false;
-            player.y = ground.elements[i].y - player.height;
-            player.dy = 0;
         }
     }
 
@@ -874,18 +895,6 @@ function updateObstacles() {
                 obstacles.elements[i].draw();
                 obstacles.elements[i].x -= frontForestWidth + obstacles.x;
         }
-
-        // Обработка столкновения персонажа с препятствием
-        if (
-            obstacles.elements[i].type !== 'water' &&
-            player.y + player.height >= obstacles.elements[i].y &&
-            player.y <= obstacles.elements[i].y + obstacles.elements[i].height &&
-            xCoordWithOffset <= player.x + player.width / 2 &&
-            player.x + player.width / 2 <=
-                xCoordWithOffset + obstacles.elements[i].width / 2
-        ) {
-            gameOver();
-        }
     }
 }
 
@@ -893,18 +902,13 @@ function updateObstacles() {
  * Обновление состояния персонажа
  */
 function updatePlayer() {
-    player.anim.update();
+    player.update();
     player.draw();
-
-    // Конец игры, если персонаж упал
-    if (player.y + player.height >= canvas.height) {
-        gameOver();
-    }
 }
 
 function updateOtherPlayers() {
     otherPlayers.map(otherPlayer => {
-        otherPlayer.anim.update();
+        otherPlayer.update();
         otherPlayer.draw();
     });
 }
@@ -913,9 +917,9 @@ function updateOtherPlayers() {
  * Game loop
  */
 function animate() {
+    if (player.status !== PLAYER_STATUSES.dead) score++;
+
     if (!stop) {
-        score++;
-        //requestAnimFrame(animate);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         background.draw();
@@ -1130,7 +1134,7 @@ function startGame() {
  * Конец игры
  */
 function gameOver() {
-    stop = true;
+    // stop = true;
     document.querySelector('#score').innerHTML = score;
     document.querySelector('#game-over').style.display = 'block';
 
