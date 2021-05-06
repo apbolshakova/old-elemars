@@ -25,7 +25,7 @@ const PLAYER_STATUSES = {
 };
 
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
-if (!bestScore) bestScore = {score: 0};
+if (!bestScore) bestScore = { score: 0 };
 if (!bestScore.score)
     document.querySelector('.last_best_score').innerHTML =
         'Рекорд: пока никто не сохранял. Стань первым!';
@@ -113,7 +113,7 @@ const assetLoader = (function () {
      * @param {string} name - Название ресурса
      */
     function assetLoaded(dic, name) {
-        const {finished, totalAssest, progress} = this;
+        const { finished, totalAssest, progress } = this;
 
         // Если файл уже был загружен, то можно не обрабатывать
         if (this[dic][name].status !== 'loading') {
@@ -137,7 +137,7 @@ const assetLoader = (function () {
      * @param {object} sound - Имя звукового ресурса
      */
     function _checkAudioState(sound) {
-        const {sounds} = this;
+        const { sounds } = this;
         if (sounds[sound].status === 'loading' && sounds[sound].readyState === 4) {
             assetLoaded.call(this, 'sounds', sound);
         }
@@ -1147,8 +1147,8 @@ function animate() {
         updatePlayer();
         updateOtherPlayers();
 
-        const elementsInfoToSend = obstacles.elements.map(
-            ({x, y, width, height, type}) => ({
+        const obstaclesInfoToSend = obstacles.elements.map(
+            ({ x, y, width, height, type }) => ({
                 x,
                 y,
                 width,
@@ -1156,6 +1156,14 @@ function animate() {
                 type,
             }),
         );
+
+        const groundInfoToSend = ground.elements.map(({ x, y, width, height, type }) => ({
+            x,
+            y,
+            width,
+            height,
+            type,
+        }));
 
         const playersInfoToSend = [
             {
@@ -1168,7 +1176,7 @@ function animate() {
                 status: player.status,
             },
         ].concat(
-            otherPlayers.map(({id, character, x, y, width, height, status}) => ({
+            otherPlayers.map(({ id, character, x, y, width, height, status }) => ({
                 id,
                 character,
                 x,
@@ -1180,7 +1188,8 @@ function animate() {
         );
 
         const dataToSend = {
-            obstacles: {x: obstacles.x, elements: elementsInfoToSend},
+            obstacles: { x: obstacles.x, elements: obstaclesInfoToSend },
+            ground: { x: ground.x, elements: groundInfoToSend },
             players: playersInfoToSend,
         };
 
@@ -1339,7 +1348,7 @@ document.querySelector('#save-result').onclick = function () {
 document.querySelector('#download-result').onclick = function () {
     const downloadToFile = (content, filename, contentType) => {
         const a = document.createElement('a');
-        const file = new Blob([content], {type: contentType});
+        const file = new Blob([content], { type: contentType });
 
         a.href = URL.createObjectURL(file);
         a.download = filename;

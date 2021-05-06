@@ -1,6 +1,6 @@
-import {Injectable} from '@nestjs/common';
-import {Socket} from 'socket.io';
-import {Player} from './interfaces/gameElement';
+import { Injectable } from '@nestjs/common';
+import { Socket } from 'socket.io';
+import { Player } from './interfaces/player';
 
 @Injectable()
 export class GameService {

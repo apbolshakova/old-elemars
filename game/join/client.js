@@ -25,7 +25,7 @@ const PLAYER_STATUSES = {
 };
 
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
-if (!bestScore) bestScore = {score: 0};
+if (!bestScore) bestScore = { score: 0 };
 if (!bestScore.score)
     document.querySelector('.last_best_score').innerHTML =
         'Рекорд: пока никто не сохранял. Стань первым!';
@@ -113,7 +113,7 @@ const assetLoader = (function () {
      * @param {string} name - Название ресурса
      */
     function assetLoaded(dic, name) {
-        const {finished, totalAssest, progress} = this;
+        const { finished, totalAssest, progress } = this;
 
         // Если файл уже был загружен, то можно не обрабатывать
         if (this[dic][name].status !== 'loading') {
@@ -137,7 +137,7 @@ const assetLoader = (function () {
      * @param {object} sound - Имя звукового ресурса
      */
     function _checkAudioState(sound) {
-        const {sounds} = this;
+        const { sounds } = this;
         if (sounds[sound].status === 'loading' && sounds[sound].readyState === 4) {
             assetLoaded.call(this, 'sounds', sound);
         }
@@ -595,8 +595,6 @@ Vector.prototype.advance = function () {
  * Объект персонажа
  */
 function createPlayer(player) {
-    let jumpCounter; // Сколько кадров будет продолжаться движение вверх при прыжке
-
     player.width = 500;
     player.height = 458;
     player.speed = 5 + 5 * level;
@@ -808,60 +806,23 @@ Sprite.prototype = Object.create(Vector.prototype);
  */
 function updateGround() {
     const groundElementsPerScreen = 4; // 2 земли и 2 платформы
-    // Ground - элементы по которым элемар может бегать: x, elements: Array[]{x, y, type}
-    let xCoordWithOffset;
 
-    ground.x -= player.speed;
     for (let i = 0; i < ground.elements.length; i++) {
         switch (Math.floor(i / groundElementsPerScreen)) {
             case 0:
                 ground.elements[i].x += -1 * frontForestWidth + ground.x;
-                xCoordWithOffset = ground.elements[i].x;
                 ground.elements[i].draw();
                 ground.elements[i].x -= -1 * frontForestWidth + ground.x;
                 break;
             case 1:
                 ground.elements[i].x += ground.x;
-                xCoordWithOffset = ground.elements[i].x;
                 ground.elements[i].draw();
                 ground.elements[i].x -= ground.x;
                 break;
             case 2:
                 ground.elements[i].x += frontForestWidth + ground.x;
-                xCoordWithOffset = ground.elements[i].x;
                 ground.elements[i].draw();
                 ground.elements[i].x -= frontForestWidth + ground.x;
-        }
-    }
-
-    if (ground.x + frontForestWidth <= 0) {
-        ground.x = 0;
-        ground.elements = ground.elements.slice(groundElementsPerScreen);
-        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
-        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
-        for (let i = 0; i < 2; i++) {
-            let isBig = rand(0, 1);
-            if (isBig) {
-                ground.elements.push(
-                    new Sprite(
-                        rand(0, frontForestWidth - 954) + frontForestWidth * i,
-                        300 * rand(1, 2) - 100,
-                        954,
-                        412,
-                        'bigPlatform',
-                    ),
-                );
-            } else {
-                ground.elements.push(
-                    new Sprite(
-                        rand(0, frontForestWidth - 493) + frontForestWidth * i,
-                        300 * rand(1, 2) - 100,
-                        493,
-                        353,
-                        'smallPlatform',
-                    ),
-                );
-            }
         }
     }
 }
@@ -871,27 +832,22 @@ function updateGround() {
  */
 function updateObstacles() {
     const obstacleElementsPerScreen = 2; // Вода и препятствие
-    let xCoordWithOffset;
-    // Препятствия - элементы, при столкновении с которыми конец игры: x, elements: Array[]<{x, y, type, dx, dy}>
 
     // Анимация препятствий
     for (let i = 0; i < obstacles.elements.length; i++) {
         switch (Math.floor(i / obstacleElementsPerScreen)) {
             case 0:
                 obstacles.elements[i].x += -1 * frontForestWidth + obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
                 obstacles.elements[i].draw();
                 obstacles.elements[i].x -= -1 * frontForestWidth + obstacles.x;
                 break;
             case 1:
                 obstacles.elements[i].x += obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
                 obstacles.elements[i].draw();
                 obstacles.elements[i].x -= obstacles.x;
                 break;
             case 2:
                 obstacles.elements[i].x += frontForestWidth + obstacles.x;
-                xCoordWithOffset = obstacles.elements[i].x;
                 obstacles.elements[i].draw();
                 obstacles.elements[i].x -= frontForestWidth + obstacles.x;
         }
@@ -923,9 +879,6 @@ function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         background.draw();
-
-        // Обновление состояния элементов игры
-        updateGround();
 
         // Отрисовка текущего счёта
         ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
@@ -1074,7 +1027,7 @@ document.querySelector('#save-result').onclick = function () {
 document.querySelector('#download-result').onclick = function () {
     const downloadToFile = (content, filename, contentType) => {
         const a = document.createElement('a');
-        const file = new Blob([content], {type: contentType});
+        const file = new Blob([content], { type: contentType });
 
         a.href = URL.createObjectURL(file);
         a.download = filename;
@@ -1109,23 +1062,10 @@ function startGame() {
     player = createPlayer(Object.create(Vector.prototype));
     otherPlayers = otherPlayers.map(otherPlayer => createOtherPlayer(otherPlayer));
     document.querySelector('#game-over').style.display = 'none';
-    ground = {
-        x: 0,
-        elements: [],
-    };
     stop = false;
     score = 0;
 
     ctx.font = '900 32px "Franklin Gothic Medium", sans-serif';
-
-    ground.x = -frontForestWidth;
-    for (let i = 0; i < 3; i++) {
-        ground.elements.push(new Sprite(0, 837, 1920, 243, 'grass'));
-        ground.elements.push(new Sprite(1920, 837, 1920, 243, 'grass'));
-        for (let i = 0; i < 2; i++) {
-            ground.elements.push(new Sprite());
-        }
-    }
 
     background.reset();
 }
@@ -1196,7 +1136,22 @@ function initSocket() {
                 ),
             ),
         );
+
+        ground.x = data.ground.x;
+        ground.elements = [];
+        data.ground.elements.map(groundElement =>
+            ground.elements.push(
+                new Sprite(
+                    groundElement.x,
+                    groundElement.y,
+                    groundElement.width,
+                    groundElement.height,
+                    groundElement.type,
+                ),
+            ),
+        );
         animate();
+        updateGround();
         updateObstacles();
         updateOtherPlayers();
         updatePlayer();

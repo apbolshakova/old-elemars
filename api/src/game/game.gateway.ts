@@ -1,9 +1,11 @@
-import {SubscribeMessage, WebSocketGateway, WebSocketServer} from '@nestjs/websockets';
-import {Server, Socket} from 'socket.io';
-import {GameService} from './game.service';
-import {Logger} from '@nestjs/common';
-import {ButtonCode} from './enums/button-code';
-import {Obstacle, Player} from './interfaces/gameElement';
+import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { GameService } from './game.service';
+import { Logger } from '@nestjs/common';
+import { ButtonCode } from './enums/button-code';
+import { ObstaclesData } from './interfaces/obstacles-data';
+import { GroundData } from './interfaces/ground-data';
+import { Player } from './interfaces/player';
 
 @WebSocketGateway()
 export class GameGateway {
@@ -87,7 +89,8 @@ export class GameGateway {
     handleUpdating(
         client: Socket,
         data: {
-            obstacles: Obstacle[];
+            obstacles: ObstaclesData;
+            ground: GroundData;
             players: Player[];
         },
     ) {
