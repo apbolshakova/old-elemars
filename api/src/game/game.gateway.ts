@@ -9,8 +9,6 @@ import { Player } from './interfaces/player';
 
 @WebSocketGateway()
 export class GameGateway {
-    @WebSocketServer() wss: Server;
-
     private readonly logger = new Logger('Game gateway');
 
     constructor(private gameService: GameService) {}
@@ -51,6 +49,7 @@ export class GameGateway {
         this.logger.log('join');
         if (this.gameService.gameId !== data.gameId) {
             client.emit('joinFail', 'Попытка подключится к несуществующей игре.');
+            return;
         }
 
         for (const player of this.gameService.players) {
@@ -68,11 +67,36 @@ export class GameGateway {
         };
 
         this.gameService.players.push(newPlayer);
+        this.gameService.playerSockets.push({ socket: client, playerId: data.clientId });
 
-        this.wss.emit('joinSuccess', {
-            players: this.gameService.players,
-            level: this.gameService.level,
-        });
+        this.gameService.playerSockets.map(playerSocket =>
+            playerSocket.socket.emit('joinSuccess', {
+                players: this.gameService.players,
+                level: this.gameService.level,
+            }),
+        );
+    }
+
+    @SubscribeMessage('disconnect')
+    handleDisconnecting(
+        client: Socket,
+        data: {
+            playerId: string;
+            gameId: string;
+        },
+    ) {
+        this.gameService.players = this.gameService.players.filter(
+            player => data.playerId !== player.id,
+        );
+        this.gameService.playerSockets = this.gameService.playerSockets.filter(
+            playerSocket => data.playerId !== playerSocket.playerId,
+        );
+
+        this.gameService.playerSockets.map(playerSocket =>
+            playerSocket.socket.emit('disconnectSuccess', {
+                players: this.gameService.players,
+            }),
+        );
     }
 
     @SubscribeMessage('deleteGame')
@@ -94,12 +118,15 @@ export class GameGateway {
             players: Player[];
         },
     ) {
+        this.gameService.players = data.players;
         client.broadcast.emit('update', data);
     }
 
     @SubscribeMessage('start')
     handleGameStarting() {
-        this.wss.emit('start');
+        this.gameService.playerSockets.map(playerSocket =>
+            playerSocket.socket.emit('start'),
+        );
     }
 
     @SubscribeMessage('clientPressButton')

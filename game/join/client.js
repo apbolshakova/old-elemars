@@ -945,7 +945,9 @@ function mainMenu() {
     document.querySelectorAll('.back').forEach(
         el =>
             (el.onclick = function () {
-                socket.emit('deleteGame', gameId);
+                socket.emit('disconnect', { gameId: gameId, playerId: player.id });
+                otherPlayers = [];
+
                 document.querySelector('#credits').style.display = 'none';
                 document.querySelector('#game-over').style.display = 'none';
                 document.querySelector('#main').style.display = 'block';
@@ -955,8 +957,6 @@ function mainMenu() {
     );
 
     document.querySelector('#join-game-btn').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#multi-game-preview').style.display = 'block';
         joinMultiplayerGame();
     };
 }
@@ -1087,14 +1087,20 @@ function initSocket() {
     });
 
     socket.on('joinSuccess', data => {
+        document.querySelector('#main').style.display = 'none';
+        document.querySelector('#multi-game-preview').style.display = 'block';
         document.querySelector('.players-num').innerHTML = data.players.length;
         otherPlayers = data.players.filter(player => player.id !== clientId);
         level = data.level;
     });
 
     socket.on('joinFail', errMsg => {
-        alert('Не удалось подключится к игре! ', errMsg);
-        Location.reload();
+        alert('Не удалось подключится к игре! ' + errMsg);
+    });
+
+    socket.on('disconnectSuccess', data => {
+        document.querySelector('.players-num').innerHTML = data.players.length;
+        otherPlayers = data.players.filter(player => player.id !== clientId);
     });
 
     socket.on('deleteSuccess', () => {

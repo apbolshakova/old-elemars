@@ -7,6 +7,8 @@ export class GameService {
     public gameId: string | null = null;
     public level: string | null = null;
     public players: Player[] = [];
+
+    public playerSockets: { socket: Socket; playerId: string }[] = [];
     public host: Socket | null = null;
 
     public deleteGame() {
@@ -14,5 +16,6 @@ export class GameService {
         this.level = null;
         this.players = [];
         this.host = null;
+        this.playerSockets = [];
     }
 }
