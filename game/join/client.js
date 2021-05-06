@@ -961,10 +961,10 @@ function mainMenu() {
     };
 }
 
-document.querySelector('.restart').onclick = function () {
-    document.querySelector('#game-over').style.display = 'none';
-    startGame();
-};
+// document.querySelector('.restart').onclick = function () {
+//     document.querySelector('#game-over').style.display = 'none';
+//     startGame();
+// };
 
 document.querySelector('#ice').onclick = function () {
     selectedCharacter = 'ice';
