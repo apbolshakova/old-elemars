@@ -10,7 +10,7 @@ const app = new Vue({
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let score; // Содержит счёт во время игры
-let stop; // Булевая переменная, окончена ли игра
+let gameOverPopupIsShowed; // Булевая переменная отображения конца игры
 let ground = []; // Земля и платформы
 let obstacles = []; // Препятствия
 let selectedCharacter = 'ice'; // Выбранный персонаж
@@ -875,14 +875,10 @@ function updateOtherPlayers() {
 function animate() {
     if (player.status !== PLAYER_STATUSES.dead) score++;
 
-    if (!stop) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        background.draw();
-
-        // Отрисовка текущего счёта
-        ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
-    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    background.draw();
+    // Отрисовка текущего счёта
+    ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
 }
 
 /**
@@ -1062,7 +1058,7 @@ function startGame() {
     player = createPlayer(Object.create(Vector.prototype));
     otherPlayers = otherPlayers.map(otherPlayer => createOtherPlayer(otherPlayer));
     document.querySelector('#game-over').style.display = 'none';
-    stop = false;
+    gameOverPopupIsShowed = false;
     score = 0;
 
     ctx.font = '900 32px "Franklin Gothic Medium", sans-serif';
@@ -1074,7 +1070,7 @@ function startGame() {
  * Конец игры
  */
 function gameOver() {
-    // stop = true;
+    gameOverPopupIsShowed = true;
     document.querySelector('#score').innerHTML = score;
     document.querySelector('#game-over').style.display = 'block';
 
@@ -1155,6 +1151,8 @@ function initSocket() {
         updateObstacles();
         updateOtherPlayers();
         updatePlayer();
+
+        if (!gameOverPopupIsShowed && player.status === PLAYER_STATUSES.dead) gameOver();
     });
 
     socket.on('start', () => {

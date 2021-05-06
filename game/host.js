@@ -10,7 +10,7 @@ const app = new Vue({
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let score; // Содержит счёт во время игры
-let stop; // Булевая переменная, окончена ли игра
+let gameStatus; // Статус игры, от которого зависит попап у хоста
 let ground = []; // Земля и платформы
 let obstacles = []; // Препятствия
 let selectedCharacter = 'ice'; // Выбранный персонаж
@@ -22,6 +22,13 @@ const PLAYER_STATUSES = {
     running: 'running',
     jumping: 'jumping',
     dead: 'dead',
+};
+
+const GAME_STATUS = {
+    IN_PROGRESS: 'inProgress',
+    HOST_DEAD: 'hostDead',
+    ALL_DEAD: 'allDead',
+    ENDED: 'ended',
 };
 
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
@@ -601,7 +608,7 @@ function createPlayer(player) {
     player.height = 458;
     player.speed = 5 + 5 * level;
     player.dy = 0;
-    player.status = PLAYER_STATUSES['jumping'];
+    player.status = PLAYER_STATUSES.jumping;
 
     // Параметры прыжка
     if (level === 1) {
@@ -1032,7 +1039,7 @@ function updateObstacles() {
                 xCoordWithOffset + obstacles.elements[i].width / 2
         ) {
             player.status = PLAYER_STATUSES.dead;
-            // gameOver();
+            updateGameStatusAndGameOverPopup();
         }
 
         // Обработка столкновения остальных персонажей с препятствием
@@ -1046,6 +1053,7 @@ function updateObstacles() {
                     xCoordWithOffset + obstacles.elements[i].width / 2
             ) {
                 otherPlayer.status = PLAYER_STATUSES.dead;
+                updateGameStatusAndGameOverPopup();
             }
         });
     }
@@ -1113,7 +1121,7 @@ function updatePlayer() {
     // Конец игры, если персонаж упал
     if (player.y + player.height >= canvas.height) {
         player.status = PLAYER_STATUSES.dead;
-        // gameOver();
+        updateGameStatusAndGameOverPopup();
     }
 }
 
@@ -1125,6 +1133,7 @@ function updateOtherPlayers() {
         // Конец игры, если персонаж упал
         if (otherPlayer.y + otherPlayer.height >= canvas.height) {
             otherPlayer.status = PLAYER_STATUSES.dead;
+            updateGameStatusAndGameOverPopup();
         }
     });
 }
@@ -1133,71 +1142,71 @@ function updateOtherPlayers() {
  * Game loop
  */
 function animate() {
+    if (gameStatus === GAME_STATUS.ENDED) return;
+
     if (player.status !== PLAYER_STATUSES.dead) score++;
 
-    if (!stop) {
-        requestAnimFrame(animate);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    requestAnimFrame(animate);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        background.draw();
+    background.draw();
 
-        // Обновление состояния элементов игры
-        updateGround();
-        updateObstacles();
-        updatePlayer();
-        updateOtherPlayers();
+    // Обновление состояния элементов игры
+    updateGround();
+    updateObstacles();
+    updatePlayer();
+    updateOtherPlayers();
 
-        const obstaclesInfoToSend = obstacles.elements.map(
-            ({ x, y, width, height, type }) => ({
-                x,
-                y,
-                width,
-                height,
-                type,
-            }),
-        );
-
-        const groundInfoToSend = ground.elements.map(({ x, y, width, height, type }) => ({
+    const obstaclesInfoToSend = obstacles.elements.map(
+        ({ x, y, width, height, type }) => ({
             x,
             y,
             width,
             height,
             type,
-        }));
+        }),
+    );
 
-        const playersInfoToSend = [
-            {
-                id: clientId,
-                character: selectedCharacter,
-                x: player.x,
-                y: player.y,
-                width: player.width,
-                height: player.height,
-                status: player.status,
-            },
-        ].concat(
-            otherPlayers.map(({ id, character, x, y, width, height, status }) => ({
-                id,
-                character,
-                x,
-                y,
-                width,
-                height,
-                status,
-            })),
-        );
+    const groundInfoToSend = ground.elements.map(({ x, y, width, height, type }) => ({
+        x,
+        y,
+        width,
+        height,
+        type,
+    }));
 
-        const dataToSend = {
-            obstacles: { x: obstacles.x, elements: obstaclesInfoToSend },
-            ground: { x: ground.x, elements: groundInfoToSend },
-            players: playersInfoToSend,
-        };
+    const playersInfoToSend = [
+        {
+            id: clientId,
+            character: selectedCharacter,
+            x: player.x,
+            y: player.y,
+            width: player.width,
+            height: player.height,
+            status: player.status,
+        },
+    ].concat(
+        otherPlayers.map(({ id, character, x, y, width, height, status }) => ({
+            id,
+            character,
+            x,
+            y,
+            width,
+            height,
+            status,
+        })),
+    );
 
-        socket.emit('update', dataToSend);
+    const dataToSend = {
+        obstacles: { x: obstacles.x, elements: obstaclesInfoToSend },
+        ground: { x: ground.x, elements: groundInfoToSend },
+        players: playersInfoToSend,
+    };
 
-        // Отрисовка текущего счёта
-        ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
-    }
+    socket.emit('update', dataToSend);
+
+    // Отрисовка текущего счёта
+    ctx.fillText('Счёт: ' + score, canvas.width - 200, 75);
 }
 
 /**
@@ -1259,6 +1268,8 @@ function mainMenu() {
         el =>
             (el.onclick = function () {
                 socket.emit('deleteGame', gameId);
+                gameStatus = GAME_STATUS.ENDED;
+
                 document.querySelector('#credits').style.display = 'none';
                 document.querySelector('#game-over').style.display = 'none';
                 document.querySelector('#main').style.display = 'block';
@@ -1384,6 +1395,7 @@ function startGame() {
     player = createPlayer(Object.create(Vector.prototype));
     otherPlayers = otherPlayers.map(otherPlayer => createOtherPlayer(otherPlayer));
     document.querySelector('#game-over').style.display = 'none';
+    document.querySelector('#game-over-controls').style.display = 'none';
     ground = {
         x: 0,
         elements: [],
@@ -1393,7 +1405,7 @@ function startGame() {
         elements: [],
     };
     player.reset();
-    stop = false;
+    gameStatus = GAME_STATUS.IN_PROGRESS;
     score = 0;
 
     ctx.font = '900 32px "Franklin Gothic Medium", sans-serif';
@@ -1422,10 +1434,23 @@ function startGame() {
 /**
  * Конец игры
  */
-function gameOver() {
-    stop = true;
+function updateGameStatusAndGameOverPopup() {
+    if (player.status === PLAYER_STATUSES.dead) {
+        if (otherPlayers.every(oPlayer => oPlayer.status === PLAYER_STATUSES.dead))
+            gameStatus = GAME_STATUS.ALL_DEAD;
+        else gameStatus = GAME_STATUS.HOST_DEAD;
+    }
+
     document.querySelector('#score').innerHTML = score;
-    document.querySelector('#game-over').style.display = 'block';
+
+    if (gameStatus === GAME_STATUS.HOST_DEAD)
+        document.querySelector('#game-over').style.display = 'block';
+
+    if (gameStatus === GAME_STATUS.ALL_DEAD) {
+        document.querySelector('#game-over').style.display = 'block';
+        document.querySelector('#wait-game-over-message').style.display = 'none';
+        document.querySelector('#game-over-controls').style.display = 'block';
+    }
 
     const saveResultDiv = document.querySelector('.save_result_container');
     if (score > bestScore.score) saveResultDiv.classList.remove('hidden');
