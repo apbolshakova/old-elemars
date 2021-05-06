@@ -798,6 +798,8 @@ function createOtherPlayer(otherPlayer) {
     otherPlayer.update = function () {
         if (level > 1 && otherPlayer.pressedButtons['KeyD']) otherPlayer.dx = 10;
         else if (level > 1 && otherPlayer.pressedButtons['KeyA']) otherPlayer.dx = -10;
+        else if (otherPlayer.status === PLAYER_STATUSES.dead)
+            otherPlayer.dx = -player.speed;
         else otherPlayer.dx = 0;
 
         // Прыгнуть, если нажали на W и персонаж не прыгает
@@ -1038,7 +1040,7 @@ function updateObstacles() {
             if (
                 obstacles.elements[i].type !== 'water' &&
                 otherPlayer.y + otherPlayer.height >= obstacles.elements[i].y &&
-                player.y <= obstacles.elements[i].y + obstacles.elements[i].height &&
+                otherPlayer.y <= obstacles.elements[i].y + obstacles.elements[i].height &&
                 xCoordWithOffset <= otherPlayer.x + otherPlayer.width / 2 &&
                 otherPlayer.x + otherPlayer.width / 2 <=
                     xCoordWithOffset + obstacles.elements[i].width / 2

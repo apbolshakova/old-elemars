@@ -648,7 +648,7 @@ function createPlayer(player) {
     }
     player.runAnim = new Animation(player.runSheet, 2, 0, 26);
     player.jumpAnim = new Animation(player.jumpSheet, 2, 0, 26);
-    player.deathAnim = new Animation(player.deathSheet, 1, 0, 24);
+    player.deathAnim = new Animation(player.deathSheet, 1, 0, 24, true);
     player.anim = player.runAnim;
 
     Vector.call(player, 0, 0, 0, player.dy);
@@ -1171,7 +1171,7 @@ function initSocket() {
             .map(curPlayer => {
                 player.x = curPlayer.x;
                 player.y = curPlayer.y;
-                player.isJumping = curPlayer.isJumping;
+                player.status = curPlayer.status;
             });
         otherPlayers.forEach(oPlayer =>
             data.players
@@ -1179,7 +1179,7 @@ function initSocket() {
                 .map(curPlayer => {
                     oPlayer.x = curPlayer.x;
                     oPlayer.y = curPlayer.y;
-                    oPlayer.isJumping = curPlayer.isJumping;
+                    oPlayer.status = curPlayer.status;
                 }),
         );
 
