@@ -1443,8 +1443,10 @@ function updateGameStatusAndGameOverPopup() {
 
     document.querySelector('#score').innerHTML = score;
 
-    if (gameStatus === GAME_STATUS.HOST_DEAD)
+    if (gameStatus === GAME_STATUS.HOST_DEAD) {
+        document.querySelector('#wait-game-over-message').style.display = 'block';
         document.querySelector('#game-over').style.display = 'block';
+    }
 
     if (gameStatus === GAME_STATUS.ALL_DEAD) {
         document.querySelector('#game-over').style.display = 'block';
