@@ -1,3 +1,16 @@
+const PLAYER_STATUSES = {
+    running: 'running',
+    jumping: 'jumping',
+    dead: 'dead',
+};
+
+const CHARACTERS = {
+    ICE: 'ice',
+    FIRE: 'fire',
+    WATER: 'water',
+    ACID: 'acid',
+};
+
 const app = new Vue({
     el: '#app',
     data: {
@@ -13,16 +26,10 @@ let score; // Содержит счёт во время игры
 let gameOverPopupIsShowed; // Булевая переменная отображения конца игры
 let ground = []; // Земля и платформы
 let obstacles = []; // Препятствия
-let selectedCharacter = 'ice'; // Выбранный персонаж
+let selectedCharacter = CHARACTERS.ICE; // Выбранный персонаж
 let level = 1; // Выбранный уровень сложности
 let player; // Текущий персонаж
 let otherPlayers = []; // Персонажи других игроков
-
-const PLAYER_STATUSES = {
-    running: 'running',
-    jumping: 'jumping',
-    dead: 'dead',
-};
 
 let bestScore = JSON.parse(localStorage.getItem('bestScore')); // Лучший локально сохранённый результат: {name, score, character}
 if (!bestScore) bestScore = { score: 0 };
@@ -46,7 +53,7 @@ const frontForestWidth = 4674;
 // Сокет для мультиплеера
 let socket = null;
 let gameId = null;
-const clientId = '2';
+const clientId = rand(2, 100).toString();
 
 /**
  * Получить число в заданном диапазоне
@@ -73,6 +80,14 @@ const assetLoader = (function () {
         fireRun: './../img/fire/fire_run.png',
         fireJump: './../img/fire/fire_jump.png',
         fireDeath: './../img/fire/fire_death.png',
+
+        waterRun: './../img/water/water_run.png',
+        waterJump: './../img/water/water_run.png',
+        waterDeath: './../img/water/water_run.png',
+
+        acidRun: './../img/acid/acid_run.png',
+        acidJump: './../img/acid/acid_run.png',
+        acidDeath: './../img/acid/acid_run.png',
 
         cloud1: './../img/map/clouds/cloud-1.png',
         cloud2: './../img/map/clouds/cloud-2.png',
@@ -610,40 +625,21 @@ function createPlayer(player) {
     }
 
     // Spritesheets
-    if (selectedCharacter === 'ice') {
-        player.runSheet = new SpriteSheet(
-            assetLoader.imgs.iceRun.src,
-            player.width,
-            player.height,
-        );
-        player.jumpSheet = new SpriteSheet(
-            assetLoader.imgs.iceJump.src,
-            player.width,
-            player.height,
-        );
-        player.deathSheet = new SpriteSheet(
-            assetLoader.imgs.iceDeath.src,
-            player.width,
-            player.height,
-        );
-    }
-    if (selectedCharacter === 'fire') {
-        player.runSheet = new SpriteSheet(
-            assetLoader.imgs.fireRun.src,
-            player.width,
-            player.height,
-        );
-        player.jumpSheet = new SpriteSheet(
-            assetLoader.imgs.fireJump.src,
-            player.width,
-            player.height,
-        );
-        player.deathSheet = new SpriteSheet(
-            assetLoader.imgs.fireDeath.src,
-            player.width,
-            player.height,
-        );
-    }
+    player.runSheet = new SpriteSheet(
+        './../img/' + selectedCharacter + '/' + selectedCharacter + '_run.png',
+        player.width,
+        player.height,
+    );
+    player.jumpSheet = new SpriteSheet(
+        './../img/' + selectedCharacter + '/' + selectedCharacter + '_jump.png',
+        player.width,
+        player.height,
+    );
+    player.deathSheet = new SpriteSheet(
+        './../img/' + selectedCharacter + '/' + selectedCharacter + '_death.png',
+        player.width,
+        player.height,
+    );
     player.runAnim = new Animation(player.runSheet, 2, 0, 26);
     player.jumpAnim = new Animation(player.jumpSheet, 2, 0, 26);
     player.deathAnim = new Animation(player.deathSheet, 1, 0, 24, true);
@@ -693,40 +689,21 @@ function createOtherPlayer(otherPlayer) {
     otherPlayer.height = 458;
 
     // Spritesheets
-    if (otherPlayer.character === 'ice') {
-        otherPlayer.runSheet = new SpriteSheet(
-            assetLoader.imgs.iceRun.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-        otherPlayer.jumpSheet = new SpriteSheet(
-            assetLoader.imgs.iceJump.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-        otherPlayer.deathSheet = new SpriteSheet(
-            assetLoader.imgs.iceDeath.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-    }
-    if (otherPlayer.character === 'fire') {
-        otherPlayer.runSheet = new SpriteSheet(
-            assetLoader.imgs.fireRun.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-        otherPlayer.jumpSheet = new SpriteSheet(
-            assetLoader.imgs.fireJump.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-        otherPlayer.deathSheet = new SpriteSheet(
-            assetLoader.imgs.fireDeath.src,
-            otherPlayer.width,
-            otherPlayer.height,
-        );
-    }
+    otherPlayer.runSheet = new SpriteSheet(
+        './../img/' + otherPlayer.character + '/' + otherPlayer.character + '_run.png',
+        otherPlayer.width,
+        otherPlayer.height,
+    );
+    otherPlayer.jumpSheet = new SpriteSheet(
+        './../img/' + otherPlayer.character + '/' + otherPlayer.character + '_jump.png',
+        otherPlayer.width,
+        otherPlayer.height,
+    );
+    otherPlayer.deathSheet = new SpriteSheet(
+        './../img/' + otherPlayer.character + '/' + otherPlayer.character + '_death.png',
+        otherPlayer.width,
+        otherPlayer.height,
+    );
     otherPlayer.runAnim = new Animation(otherPlayer.runSheet, 2, 0, 26);
     otherPlayer.jumpAnim = new Animation(otherPlayer.jumpSheet, 2, 0, 26);
     otherPlayer.deathAnim = new Animation(otherPlayer.deathSheet, 2, 0, 24, true);
@@ -966,30 +943,23 @@ function mainMenu() {
 //     startGame();
 // };
 
-document.querySelector('#ice').onclick = function () {
-    selectedCharacter = 'ice';
-    this.classList.add('button_active');
-    document.querySelector('#fire').classList.remove('button_active');
-    document.querySelectorAll('.fire').forEach(el => el.classList.remove('fire'));
-};
+for (let ch in CHARACTERS) {
+    document.querySelector('#' + CHARACTERS[ch]).onclick = function () {
+        selectedCharacter = CHARACTERS[ch];
+        updateInterface();
+        this.classList.add('button_active');
+    };
+}
 
-document.querySelector('#fire').onclick = function () {
-    selectedCharacter = 'fire';
-    this.classList.add('button_active');
-    document.querySelector('#ice').classList.remove('button_active');
-    document.querySelectorAll('button').forEach(el => el.classList.add('fire'));
-};
-
-document.querySelectorAll('.level_button').forEach(
-    el =>
-        (el.onclick = function () {
-            document
-                .querySelectorAll('.level_button')
-                .forEach(el => el.classList.remove('button_active'));
-            this.classList.add('button_active');
-            level = parseInt(this.id);
-        }),
-);
+function updateInterface() {
+    for (let ch in CHARACTERS) {
+        document.querySelector('#' + CHARACTERS[ch]).classList.remove('button_active');
+        document.querySelectorAll('button').forEach(el => {
+            el.classList.remove(CHARACTERS[ch]);
+            el.classList.add(selectedCharacter);
+        });
+    }
+}
 
 document.querySelector('#show-name-input-btn').onclick = function () {
     document.querySelector('#result-saving').style.display = 'block';
@@ -1040,9 +1010,7 @@ document.querySelector('#download-result').onclick = function () {
             (bestScore.name ? bestScore.name : 'Ты') +
             ' молодец и набрал ' +
             bestScore.score +
-            ' очков, играя за ' +
-            (bestScore.character === 'ice' ? 'Лёд' : 'Огонь') +
-            '!';
+            ' очков!';
     }
 
     downloadToFile(text, 'Рекорд.txt', 'text/plain');
@@ -1170,7 +1138,6 @@ function initSocket() {
 
 function joinMultiplayerGame() {
     gameId = 'example';
-    const clientId = '2';
     socket.emit('join', {
         clientId: clientId,
         gameId: gameId,

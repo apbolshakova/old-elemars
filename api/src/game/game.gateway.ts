@@ -6,6 +6,7 @@ import { ButtonCode } from './enums/button-code';
 import { ObstaclesData } from './interfaces/obstacles-data';
 import { GroundData } from './interfaces/ground-data';
 import { Player } from './interfaces/player';
+import { Character } from './enums/character';
 
 @WebSocketGateway()
 export class GameGateway {
@@ -43,7 +44,7 @@ export class GameGateway {
         data: {
             clientId: string;
             gameId: string;
-            character: string;
+            character: Character;
         },
     ) {
         this.logger.log('join');

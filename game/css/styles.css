@@ -112,7 +112,7 @@ li {
     text-align: center;
     border-radius: 8px;
     transition-duration: 0.2s;
-    background: #5ba2fc;
+    background: #905bff;
     color: #ffffff;
     position: relative;
     cursor: pointer;
@@ -124,6 +124,14 @@ li {
 
 .button.fire {
     background: #ff8e2f;
+}
+
+.button.water {
+    background: #5ba2fc;
+}
+
+.button.acid {
+    background: #00d076;
 }
 
 .button_small {
