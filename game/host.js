@@ -662,20 +662,23 @@ function createPlayer(player) {
      * Обновление данных о персонаже и перерисовка спрайта
      */
     player.update = function () {
-        if (level > 1 && KEY_STATUS['KeyD']) player.dx = 10;
+        if (player.status === PLAYER_STATUSES.dead) player.dx = -player.speed;
+        else if (level > 1 && KEY_STATUS['KeyD']) player.dx = 10;
         else if (level > 1 && KEY_STATUS['KeyA']) player.dx = -10;
-        else if (player.status === PLAYER_STATUSES.dead) player.dx = -player.speed;
         else player.dx = 0;
 
-        // Прыгнуть, если нажали на W и персонаж не прыгает
+        // Прыгнуть, если нажали на W и персонаж не прыгает и не мёртв
         if (
             KEY_STATUS['KeyW'] &&
             player.dy === 0 &&
-            player.status !== PLAYER_STATUSES['jumping']
+            player.status !== PLAYER_STATUSES['jumping'] &&
+            player.status !== PLAYER_STATUSES['dead']
         ) {
             player.status = PLAYER_STATUSES['jumping'];
             player.dy = player.jumpDy;
         }
+
+        // Персонаж должен постепенно падать, если он в прыжке или умер
         if (
             player.status === PLAYER_STATUSES['jumping'] ||
             player.status === PLAYER_STATUSES['dead']
@@ -781,21 +784,23 @@ function createOtherPlayer(otherPlayer) {
     };
 
     otherPlayer.update = function () {
-        if (level > 1 && otherPlayer.pressedButtons['KeyD']) otherPlayer.dx = 10;
+        if (otherPlayer.status === PLAYER_STATUSES.dead) otherPlayer.dx = -player.speed;
+        else if (level > 1 && otherPlayer.pressedButtons['KeyD']) otherPlayer.dx = 10;
         else if (level > 1 && otherPlayer.pressedButtons['KeyA']) otherPlayer.dx = -10;
-        else if (otherPlayer.status === PLAYER_STATUSES.dead)
-            otherPlayer.dx = -player.speed;
         else otherPlayer.dx = 0;
 
-        // Прыгнуть, если нажали на W и персонаж не прыгает
+        // Прыгнуть, если нажали на W и персонаж не прыгает и не мёртв
         if (
             otherPlayer.pressedButtons['KeyW'] &&
             otherPlayer.dy === 0 &&
-            otherPlayer.status !== PLAYER_STATUSES['jumping']
+            otherPlayer.status !== PLAYER_STATUSES['jumping'] &&
+            otherPlayer.status !== PLAYER_STATUSES['dead']
         ) {
             otherPlayer.status = PLAYER_STATUSES['jumping'];
             otherPlayer.dy = otherPlayer.jumpDy;
         }
+
+        // Персонаж должен постепенно падать, если он в прыжке или умер
         if (
             otherPlayer.status === PLAYER_STATUSES['jumping'] ||
             otherPlayer.status === PLAYER_STATUSES['dead']
