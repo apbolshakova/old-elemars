@@ -1262,10 +1262,10 @@ function mainMenu() {
             }),
     );
 
-    document.querySelector('#start-solo-game-btn').onclick = function () {
-        document.querySelector('#main').style.display = 'none';
-        document.querySelector('#solo-game-preview').style.display = 'block';
-    };
+    // document.querySelector('#start-solo-game-btn').onclick = function () {
+    //     document.querySelector('#main').style.display = 'none';
+    //     document.querySelector('#solo-game-preview').style.display = 'block';
+    // };
 
     document.querySelector('#start-multi-game-btn').onclick = function () {
         document.querySelector('#main').style.display = 'none';
