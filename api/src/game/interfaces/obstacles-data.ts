@@ -1,4 +1,4 @@
-import { GameElement } from './gameElement';
+import { GameElement } from './game-element';
 
 export interface ObstacleElement extends GameElement {
     type: string;

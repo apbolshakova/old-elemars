@@ -1,5 +1,5 @@
-import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { Logger } from '@nestjs/common';
 import { ButtonCode } from './enums/button-code';
